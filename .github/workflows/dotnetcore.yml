@@ -36,7 +36,7 @@ jobs:
 
       - name: Add private GitHub registry to NuGet
         run: |
-          nuget sources add -name "GPR" -Source https://nuget.pkg.github.com/responses/index.json -Username slipalison -Password ${{ secrets.nuget_token }}
+          nuget sources add -name "GPR" -Source https://nuget.pkg.github.com/responses/index.json -Username slipalison -Password ${{ secrets.git_package }}
 
       - name: Push generated package to GitHub registry
         run: |
