@@ -30,6 +30,11 @@ jobs:
       - name: Generate NuGet package
         run: |
           dotnet pack -c Release
+      
+      - name: Generate push NuGet package
+        run: |
+          dir Responses\bin\Release\*.nupkg   
+          dotnet nuget push Responses\bin\Release\*.nupkg -k ${{ secrets.nuget_token }} -s https://api.nuget.org/v3/index.json
 
       - name: Install NuGet client
         uses: warrenbuckley/Setup-Nuget@v1
