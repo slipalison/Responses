@@ -34,7 +34,7 @@ jobs:
       - name: Generate push NuGet package
         run: |
           dir Responses\bin\Release\*.nupkg
-          find Responses\bin\Release\ -name '*.nupkg' | xargs -i dotnet nuget push {} -k ${{ secrets.nuget_token }} -s https://api.nuget.org/v3/index.json 
+          find D:\a\Responses\Responses\Responses\bin\Release -name '*.nupkg' | xargs -i dotnet nuget push {} -k ${{ secrets.nuget_token }} -s https://api.nuget.org/v3/index.json 
           
       - name: Install NuGet client
         uses: warrenbuckley/Setup-Nuget@v1
