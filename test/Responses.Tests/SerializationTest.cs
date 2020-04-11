@@ -76,7 +76,6 @@ namespace Responses.Tests
 
             var back = JsonConvert.DeserializeObject<Result<int, Error>>(serialized);
 
-            Assert.Throws<InvalidOperationException>(() => back.Value);
             Assert.Equal(result.Error.ApplicationName, back.Error.ApplicationName);
             Assert.Equal(result.Error.Code, back.Error.Code);
             Assert.Equal(result.Error.Layer, back.Error.Layer);
@@ -110,7 +109,6 @@ namespace Responses.Tests
             var back = JsonConvert.DeserializeObject<Result<int>>(serialized);
 
             Assert.True(back.IsSuccess);
-            Assert.Throws<InvalidOperationException>(() => back.Error);
             Assert.Equal(1, back.Value);
         }
 
@@ -127,7 +125,6 @@ namespace Responses.Tests
             var back = JsonConvert.DeserializeObject<Result<int>>(serialized);
 
             Assert.False(back.IsSuccess);
-            Assert.Throws<InvalidOperationException>(() => back.Value);
             Assert.Equal(code, back.Error.Code);
             Assert.Equal(message, back.Error.Message);
         }

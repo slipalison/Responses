@@ -3,11 +3,19 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29806.167
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Responses", "Responses\Responses.csproj", "{040FD5D9-0C40-4E37-801C-7DE582CEC03B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Responses", "Responses\Responses.csproj", "{040FD5D9-0C40-4E37-801C-7DE582CEC03B}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{542C4B25-4E2C-4D6D-91FA-D71259725AE7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Responses.Tests", "test\Responses.Tests\Responses.Tests.csproj", "{4705EBC7-57CA-4629-8C37-468E09DCE506}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Responses.Tests", "test\Responses.Tests\Responses.Tests.csproj", "{4705EBC7-57CA-4629-8C37-468E09DCE506}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{2E911B25-ED08-40C3-9049-546C6C075D26}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.gitignore = .gitignore
+		.github\workflows\dotnetcore.yml = .github\workflows\dotnetcore.yml
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
