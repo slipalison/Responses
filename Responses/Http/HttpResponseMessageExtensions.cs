@@ -44,7 +44,7 @@ namespace Responses.Http
             }
             catch (Exception ex)
             {
-                Result.Fail(response.Result.StatusCode.ToString(), ex.Message);
+                return Result.Fail(response.Result.StatusCode.ToString(), ex.Message);
             }
         }
 
