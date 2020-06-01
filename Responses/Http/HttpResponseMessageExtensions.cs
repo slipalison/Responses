@@ -23,21 +23,28 @@ namespace Responses.Http
 
         public static async Task<Result> ReceiveResult(this Task<HttpResponseMessage> response, JsonSerializer serializer = null)
         {
-            using (var resp = await response.ConfigureAwait(false))
+            try
             {
-                switch ((int)resp.StatusCode / 100)
+                using (var resp = await response.ConfigureAwait(false))
                 {
-                    case 2:
-                        return Result.Ok();
+                    switch ((int)resp.StatusCode / 100)
+                    {
+                        case 2:
+                            return Result.Ok();
 
-                    case 4:
-                    case 5:
-                        var error = await resp.ReadJson<Error>(serializer);
-                        return Result.Fail(error ?? ErrorResolver(resp));
+                        case 4:
+                        case 5:
+                            var error = await resp.ReadJson<Error>(serializer);
+                            return Result.Fail(error ?? ErrorResolver(resp));
 
-                    default:
-                        throw new InvalidOperationException($"Unknown HTTP Status ({resp.StatusCode})");
+                        default:
+                            throw new InvalidOperationException($"Unknown HTTP Status ({resp.StatusCode})");
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                Result.Fail(response.Result.StatusCode.ToString(), ex.Message);
             }
         }
 
