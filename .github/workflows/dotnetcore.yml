@@ -72,7 +72,7 @@ jobs:
       #    nuget sources add -name "GPR" -Source https://nuget.pkg.github.com/slipalison/index.json -Username slipalison -Password ${{ secrets.GITHUB_TOKEN }}
           
       - name: Publish Nuget to GitHub registry
-        run: dotnet nuget push ./<project>/out/*.nupkg -k ${GITHUB_TOKEN} -s https://nuget.pkg.github.com/slipalison/index.json --skip-duplicate --no-symbols 
+        run: dotnet nuget push ./*.nupkg -k ${GITHUB_TOKEN} -s https://nuget.pkg.github.com/slipalison/index.json --skip-duplicate --no-symbols 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN  }}
 
