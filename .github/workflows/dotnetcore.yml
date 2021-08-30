@@ -66,17 +66,12 @@ jobs:
           #Get-ChildItem -Path E:\projetos\GitHub\Responses\Responses\bin\Release\* -Include *.nupkg | Select-Object -ExpandProperty FullName | %{dotnet nuget push $_ ${{ secrets.nuget_token }} -s https://api.nuget.org/v3/index.json}
           
 
-
-      #- name: Add private GitHub registry to NuGet
-      #  run: |
-      #    nuget sources add -name "GPR" -Source https://nuget.pkg.github.com/slipalison/index.json -Username slipalison -Password ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: Publish Nuget to GitHub registry
-        run: dotnet nuget push ./*.nupkg -k ${GITHUB_TOKEN} -s https://nuget.pkg.github.com/slipalison/index.json --skip-duplicate --no-symbols 
-        env:
+      #- name: Publish Nuget to GitHub registry
+      # run: dotnet nuget push ./*.nupkg -k ${GITHUB_TOKEN} -s https://nuget.pkg.github.com/slipalison/index.json --skip-duplicate --no-symbols 
+      #  env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN  }}
 
-      - name: Push generated package to GitHub registry
-        run: |
-          dir Responses\bin\Release\*.nupkg
-          nuget push Responses\bin\Release\*.nupkg -Source "GPR" -SkipDuplicate
+      #- name: Push generated package to GitHub registry
+      #  run: |
+      #    dir Responses\bin\Release\*.nupkg
+      #    nuget push Responses\bin\Release\*.nupkg -Source "GPR" -SkipDuplicate
