@@ -42,34 +42,73 @@ namespace Responses.Http
                     }
                 }
             }
+            catch (JsonSerializationException e)
+            {
+                var result = await response.Result?.Content?.ReadAsStringAsync();
+                return Result.Fail(((int)response.Result.StatusCode).ToString(),
+                    !string.IsNullOrWhiteSpace(result)
+                        ? await response.Result.Content.ReadAsStringAsync()
+                        : response.Result.StatusCode.ToString());
+            }
+            catch (JsonReaderException e)
+            {
+                var result = await response.Result?.Content?.ReadAsStringAsync();
+                return Result.Fail(((int)response.Result.StatusCode).ToString(),
+                    !string.IsNullOrWhiteSpace(result)
+                        ? await response.Result.Content.ReadAsStringAsync()
+                        : response.Result.StatusCode.ToString());
+            }
             catch (Exception ex)
             {
-                return Result.Fail(response.Result.StatusCode.ToString(), ex.Message);
+                return Result.Fail((await response.ConfigureAwait(false))?.StatusCode.ToString(), ex.Message);
             }
         }
 
-        public static async Task<Result<TValue>> ReceiveResult<TValue>(this Task<HttpResponseMessage> response, JsonSerializer serializer = null)
+        public static async Task<Result<TValue>> ReceiveResult<TValue>(this Task<HttpResponseMessage> response,
+            JsonSerializer serializer = null)
         {
-            using (var resp = await response.ConfigureAwait(false))
+            try
             {
-                switch ((int)resp.StatusCode / 100)
+                using (var resp = await response.ConfigureAwait(false))
                 {
-                    case 2:
-                        var value = await resp.ReadJson<TValue>(serializer);
-                        return Result.Ok(value);
-
-                    case 4:
-                    case 5:
-                        var error = await resp.ReadJson<Error>(serializer);
-                        return Result.Fail<TValue>(error ?? ErrorResolver(resp));
-
-                    default:
-                        throw new InvalidOperationException($"Unknown HTTP Status ({resp.StatusCode})");
+                    switch ((int)resp.StatusCode / 100)
+                    {
+                        case 2:
+                            var value = await resp.ReadJson<TValue>(serializer);
+                            return Result.Ok(value);
+                        case 4:
+                        case 5:
+                            var error = await resp.ReadJson<Error>(serializer);
+                            return Result.Fail<TValue>(error ?? ErrorResolver(resp));
+                        default:
+                            throw new InvalidOperationException($"Unknown HTTP Status ({resp.StatusCode})");
+                    }
                 }
             }
+            catch (JsonSerializationException e)
+            {
+                var result = await response.Result?.Content?.ReadAsStringAsync();
+                return Result.Fail<TValue>(((int)response.Result.StatusCode).ToString(),
+                    !string.IsNullOrWhiteSpace(result)
+                        ? await response.Result.Content.ReadAsStringAsync()
+                        : response.Result.StatusCode.ToString());
+            }
+            catch (JsonReaderException e)
+            {
+                var result = await response.Result?.Content?.ReadAsStringAsync();
+                return Result.Fail<TValue>(((int)response.Result.StatusCode).ToString(),
+                    !string.IsNullOrWhiteSpace(result)
+                        ? await response.Result.Content.ReadAsStringAsync()
+                        : response.Result.StatusCode.ToString());
+            }
+            catch (Exception ex)
+            {
+                return Result.Fail<TValue>((await response.ConfigureAwait(false))?.StatusCode.ToString(), ex.Message);
+            }
         }
 
-        public static async Task<Result<TValue, TError>> ReceiveResult<TValue, TError>(this Task<HttpResponseMessage> response, JsonSerializer serializer = null)
+        public static async Task<Result<TValue, TError>> ReceiveResult<TValue, TError>(this Task<HttpResponseMessage> response,
+            JsonSerializer serializer = null)
             where TError : IError
         {
             using (var resp = await response.ConfigureAwait(false))
