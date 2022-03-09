@@ -1,8 +1,9 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Flurl.Http;
 
 namespace Responses.Tests
 {
@@ -24,5 +25,8 @@ namespace Responses.Tests
             {
                 Content = new StringContent(JsonConvert.SerializeObject(content))
             });
+
+        public static async Task<IFlurlResponse> FakeRequestFlurl(int status, object content) =>
+            await Task.FromResult(new FlurlResponse(await FakeRequest(status,content)));
     }
 }

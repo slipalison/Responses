@@ -18,7 +18,10 @@ namespace Responses.Tests
             var result = await FakeRequest(status, null)
                 .ReceiveResult();
 
+            var result2 = await FakeRequestFlurl(status, null)
+                .ReceiveResult();
             Assert.True(result.IsSuccess);
+            Assert.True(result2.IsSuccess);
         }
 
         [Theory]
@@ -35,6 +38,14 @@ namespace Responses.Tests
         {
             var result = await FakeRequest(status, ErrorJson(status.ToString(), "ANY ERROR", "Core", "ANY1"))
                 .ReceiveResult();
+            var result2 = await FakeRequestFlurl(status, ErrorJson(status.ToString(), "ANY ERROR", "Core", "ANY1"))
+                .ReceiveResult();
+
+            Assert.False(result2.IsSuccess);
+            Assert.Equal("Core", result2.Error.Layer);
+            Assert.Equal(status.ToString(), result2.Error.Code);
+            Assert.Equal("ANY ERROR", result2.Error.Message);
+            Assert.Equal("ANY1", result2.Error.ApplicationName);
 
             Assert.False(result.IsSuccess);
             Assert.Equal("Core", result.Error.Layer);

@@ -1,8 +1,9 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using System;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Flurl.Http;
 
 namespace Responses.Http
 {
@@ -42,7 +43,7 @@ namespace Responses.Http
                     }
                 }
             }
-            catch (JsonSerializationException e)
+            catch (JsonSerializationException)
             {
                 var result = await response.Result?.Content?.ReadAsStringAsync();
                 return Result.Fail(((int)response.Result.StatusCode).ToString(),
@@ -50,7 +51,7 @@ namespace Responses.Http
                         ? await response.Result.Content.ReadAsStringAsync()
                         : response.Result.StatusCode.ToString());
             }
-            catch (JsonReaderException e)
+            catch (JsonReaderException)
             {
                 var result = await response.Result?.Content?.ReadAsStringAsync();
                 return Result.Fail(((int)response.Result.StatusCode).ToString(),
@@ -61,6 +62,23 @@ namespace Responses.Http
             catch (Exception ex)
             {
                 return Result.Fail((await response.ConfigureAwait(false))?.StatusCode.ToString(), ex.Message);
+            }
+        }
+
+        public static async Task<Result> ReceiveResult(this System.Threading.Tasks.Task<Flurl.Http.IFlurlResponse> response, JsonSerializer serializer = null)
+        {
+            using (var resp = await response.ConfigureAwait(false))
+            {
+                return await Task.FromResult(resp.ResponseMessage).ReceiveResult();
+            }
+        }
+
+        public static async Task<Result<TValue>> ReceiveResult<TValue>(this Task<IFlurlResponse> response,
+            JsonSerializer serializer = null)
+        {
+            using (var resp = await response.ConfigureAwait(false))
+            {
+                return await Task.FromResult(resp.ResponseMessage).ReceiveResult<TValue>();
             }
         }
 
@@ -85,7 +103,7 @@ namespace Responses.Http
                     }
                 }
             }
-            catch (JsonSerializationException e)
+            catch (JsonSerializationException)
             {
                 var result = await response.Result?.Content?.ReadAsStringAsync();
                 return Result.Fail<TValue>(((int)response.Result.StatusCode).ToString(),
@@ -93,7 +111,7 @@ namespace Responses.Http
                         ? await response.Result.Content.ReadAsStringAsync()
                         : response.Result.StatusCode.ToString());
             }
-            catch (JsonReaderException e)
+            catch (JsonReaderException)
             {
                 var result = await response.Result?.Content?.ReadAsStringAsync();
                 return Result.Fail<TValue>(((int)response.Result.StatusCode).ToString(),
@@ -127,6 +145,17 @@ namespace Responses.Http
                     default:
                         throw new InvalidOperationException($"Unknown HTTP Status ({resp.StatusCode})");
                 }
+            }
+        }
+
+        public static async Task<Result<TValue, TError>> ReceiveResult<TValue, TError>(this Task<IFlurlResponse> response,
+            JsonSerializer serializer = null)
+            where TError : IError
+        {
+
+            using (var resp = await response.ConfigureAwait(false))
+            {
+                return await Task.FromResult(resp.ResponseMessage).ReceiveResult<TValue,TError>();
             }
         }
 
