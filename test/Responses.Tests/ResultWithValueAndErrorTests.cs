@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Flurl.Http;
 using Xunit;
 using static Responses.Tests.TestUtils;
 using Responses.Http;

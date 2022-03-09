@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Flurl.Http;
 
 namespace Responses.Http
 {
@@ -42,7 +43,7 @@ namespace Responses.Http
                     }
                 }
             }
-            catch (JsonSerializationException e)
+            catch (JsonSerializationException)
             {
                 var result = await response.Result?.Content?.ReadAsStringAsync();
                 return Result.Fail(((int)response.Result.StatusCode).ToString(),
@@ -50,7 +51,7 @@ namespace Responses.Http
                         ? await response.Result.Content.ReadAsStringAsync()
                         : response.Result.StatusCode.ToString());
             }
-            catch (JsonReaderException e)
+            catch (JsonReaderException)
             {
                 var result = await response.Result?.Content?.ReadAsStringAsync();
                 return Result.Fail(((int)response.Result.StatusCode).ToString(),
@@ -61,6 +62,93 @@ namespace Responses.Http
             catch (Exception ex)
             {
                 return Result.Fail((await response.ConfigureAwait(false))?.StatusCode.ToString(), ex.Message);
+            }
+        }
+
+        public static async Task<Result> ReceiveResult(this Task<IFlurlResponse> response, JsonSerializer serializer = null)
+        {
+            try
+            {
+                using (var resp = await response.ConfigureAwait(false))
+                {
+                    switch ((int)resp.StatusCode / 100)
+                    {
+                        case 2:
+                            return Result.Ok();
+
+                        case 4:
+                        case 5:
+                            var error = await resp.ResponseMessage.ReadJson<Error>(serializer);
+                            return Result.Fail(error ?? ErrorResolver(resp.ResponseMessage));
+
+                        default:
+                            throw new InvalidOperationException($"Unknown HTTP Status ({resp.StatusCode})");
+                    }
+                }
+
+            }
+            catch (JsonSerializationException)
+            {
+                var result = await response.Result?.ResponseMessage?.Content?.ReadAsStringAsync();
+                return Result.Fail(((int)response.Result.StatusCode).ToString(),
+                    !string.IsNullOrWhiteSpace(result)
+                        ? await response.Result.ResponseMessage.Content.ReadAsStringAsync()
+                        : response.Result.StatusCode.ToString());
+            }
+            catch (JsonReaderException)
+            {
+                var result = await response.Result?.ResponseMessage?.Content?.ReadAsStringAsync();
+                return Result.Fail(((int)response.Result.StatusCode).ToString(),
+                    !string.IsNullOrWhiteSpace(result)
+                        ? await response.Result.ResponseMessage?.Content.ReadAsStringAsync()
+                        : response.Result.StatusCode.ToString());
+            }
+            catch (Exception ex)
+            {
+                return Result.Fail((await response.ConfigureAwait(false))?.StatusCode.ToString(), ex.Message);
+            }
+        }
+
+          public static async Task<Result<TValue>> ReceiveResult<TValue>(this Task<IFlurlResponse> response,
+            JsonSerializer serializer = null)
+        {
+            try
+            {
+                using (var resp = await response.ConfigureAwait(false))
+                {
+                    switch ((int)resp.StatusCode / 100)
+                    {
+                        case 2:
+                            var value = await resp.ResponseMessage.ReadJson<TValue>(serializer);
+                            return Result.Ok(value);
+                        case 4:
+                        case 5:
+                            var error = await resp.ResponseMessage.ReadJson<Error>(serializer);
+                            return Result.Fail<TValue>(error ?? ErrorResolver(resp.ResponseMessage));
+                        default:
+                            throw new InvalidOperationException($"Unknown HTTP Status ({resp.StatusCode})");
+                    }
+                }
+            }
+            catch (JsonSerializationException)
+            {
+                var result = await response.Result?.ResponseMessage.Content?.ReadAsStringAsync();
+                return Result.Fail<TValue>(((int)response.Result.StatusCode).ToString(),
+                    !string.IsNullOrWhiteSpace(result)
+                        ? await response.Result.ResponseMessage.Content.ReadAsStringAsync()
+                        : response.Result.StatusCode.ToString());
+            }
+            catch (JsonReaderException)
+            {
+                var result = await response.Result?.ResponseMessage.Content?.ReadAsStringAsync();
+                return Result.Fail<TValue>(((int)response.Result.StatusCode).ToString(),
+                    !string.IsNullOrWhiteSpace(result)
+                        ? await response.Result.ResponseMessage.Content.ReadAsStringAsync()
+                        : response.Result.StatusCode.ToString());
+            }
+            catch (Exception ex)
+            {
+                return Result.Fail<TValue>((await response.ConfigureAwait(false))?.StatusCode.ToString(), ex.Message);
             }
         }
 
@@ -85,7 +173,7 @@ namespace Responses.Http
                     }
                 }
             }
-            catch (JsonSerializationException e)
+            catch (JsonSerializationException)
             {
                 var result = await response.Result?.Content?.ReadAsStringAsync();
                 return Result.Fail<TValue>(((int)response.Result.StatusCode).ToString(),
@@ -93,7 +181,7 @@ namespace Responses.Http
                         ? await response.Result.Content.ReadAsStringAsync()
                         : response.Result.StatusCode.ToString());
             }
-            catch (JsonReaderException e)
+            catch (JsonReaderException)
             {
                 var result = await response.Result?.Content?.ReadAsStringAsync();
                 return Result.Fail<TValue>(((int)response.Result.StatusCode).ToString(),
@@ -123,6 +211,29 @@ namespace Responses.Http
                     case 5:
                         var error = await resp.ReadJson<TError>(serializer);
                         return Result.Fail<TValue, TError>(ErrorResolver(resp, error));
+
+                    default:
+                        throw new InvalidOperationException($"Unknown HTTP Status ({resp.StatusCode})");
+                }
+            }
+        }
+
+        public static async Task<Result<TValue, TError>> ReceiveResult<TValue, TError>(this Task<IFlurlResponse> response,
+            JsonSerializer serializer = null)
+            where TError : IError
+        {
+            using (var resp = await response.ConfigureAwait(false))
+            {
+                switch ((int)resp.StatusCode / 100)
+                {
+                    case 2:
+                        var value = await resp.ResponseMessage.ReadJson<TValue>(serializer);
+                        return Result.Ok<TValue, TError>(value);
+
+                    case 4:
+                    case 5:
+                        var error = await resp.ResponseMessage.ReadJson<TError>(serializer);
+                        return Result.Fail<TValue, TError>(ErrorResolver(resp.ResponseMessage, error));
 
                     default:
                         throw new InvalidOperationException($"Unknown HTTP Status ({resp.StatusCode})");
