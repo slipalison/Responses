@@ -4,7 +4,6 @@ using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Flurl.Http;
-
 namespace Responses.Http
 {
     public static class HttpResponseMessageExtensions
@@ -39,7 +38,7 @@ namespace Responses.Http
                     case 4:
                     case 5:
                         var error = await resp.ReadJson<Error>(serializer);
-                        return string.IsNullOrEmpty(error.ResponseError)
+                        return !string.IsNullOrEmpty(error.ResponseError)
                             ? Result.Fail(resp.StatusCode.ToString(), error.ResponseError)
                             : Result.Fail(error.Response ?? ErrorResolver(resp));
                     default:
@@ -93,7 +92,7 @@ namespace Responses.Http
                     case 4:
                     case 5:
                         var error = await resp.ReadJson<Error>(serializer);
-                        return string.IsNullOrEmpty(error.ResponseError)
+                        return !string.IsNullOrEmpty(error.ResponseError)
                             ? Result.Fail<TValue>(resp.StatusCode.ToString(), error.ResponseError)
                             : Result.Fail<TValue>(error.Response ?? ErrorResolver(resp));
                     default:
@@ -134,7 +133,7 @@ namespace Responses.Http
                 case 4:
                 case 5:
                     var error = await resp.ReadJson<TError>(serializer);
-                    return string.IsNullOrEmpty(error.ResponseError)
+                    return !string.IsNullOrEmpty(error.ResponseError)
                         ? Result.Fail<TValue, TError>((TError)(IError)new Error(resp.StatusCode.ToString(), error.ResponseError))
                         : Result.Fail<TValue, TError>(error.Response ?? ErrorResolver(resp, error.Response));
                 default:
