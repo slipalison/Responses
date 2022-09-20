@@ -15,7 +15,7 @@ namespace Responses
 
             var layer = assemblyName.Split('.').FirstOrDefault();
 
-            return (layer, GetApplicationName(assemblyName));
+            return (layer, assemblyName);
         }
 
         private static string GetApplicationName(string applicationName)
