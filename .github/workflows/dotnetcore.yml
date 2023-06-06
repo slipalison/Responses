@@ -18,7 +18,7 @@ jobs:
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: 3.1.x
+          dotnet-version: 7.0.x
 
       - name: Build solution
         run: |
@@ -75,3 +75,12 @@ jobs:
       #  run: |
       #    dir Responses\bin\Release\*.nupkg
       #    nuget push Responses\bin\Release\*.nupkg -Source "GPR" -SkipDuplicate
+
+      - name: publish on version change
+        uses: rohith/publish-nuget@v2
+        with:
+          PROJECT_FILE_PATH: Responses.Http/Responses.Http.csproj # Relative to repository root
+          VERSION_REGEX: <Version>(.*)<\/Version> # Regex pattern to extract version info in a capturing group
+          NUGET_KEY: ${{ secrets.nuget_token }} # nuget.org API key
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN  }}
+
