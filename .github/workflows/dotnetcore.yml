@@ -66,21 +66,11 @@ jobs:
           #Get-ChildItem -Path E:\projetos\GitHub\Responses\Responses\bin\Release\* -Include *.nupkg | Select-Object -ExpandProperty FullName | %{dotnet nuget push $_ ${{ secrets.nuget_token }} -s https://api.nuget.org/v3/index.json}
           
 
-      #- name: Publish Nuget to GitHub registry
-      # run: dotnet nuget push ./*.nupkg -k ${GITHUB_TOKEN} -s https://nuget.pkg.github.com/slipalison/index.json --skip-duplicate --no-symbols 
-      #  env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN  }}
-
-      #- name: Push generated package to GitHub registry
-      #  run: |
-      #    dir Responses\bin\Release\*.nupkg
-      #    nuget push Responses\bin\Release\*.nupkg -Source "GPR" -SkipDuplicate
-
       - name: publish on version change
         uses: rohith/publish-nuget@v2
         with:
           PROJECT_FILE_PATH: Responses.Http/Responses.Http.csproj # Relative to repository root
           VERSION_REGEX: <Version>(.*)<\/Version> # Regex pattern to extract version info in a capturing group
           NUGET_KEY: ${{ secrets.nuget_token }} # nuget.org API key
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN  }}
+    
 
