@@ -7,6 +7,12 @@
 ### Features
 > Mais um Notification pattern 
 
+### Install
+
+> dotnet add package Responses --version 1.2.0
+
+> dotnet add package Responses.Http --version 1.0.0
+
 ----
 
 ## Responses　
