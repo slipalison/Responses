@@ -5,7 +5,7 @@
 [![codecov](https://codecov.io/gh/slipalison/Responses/branch/master/graph/badge.svg)](https://codecov.io/gh/slipalison/Responses)
 
 ### Features
-> ....
+> Mais um Notification pattern 
 
 ----
 
