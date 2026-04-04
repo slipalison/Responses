@@ -3,17 +3,22 @@ using System.Collections.Generic;
 
 namespace Responses;
 
-public struct Error : IError
+public readonly struct Error : IError
 {
-    public string Code { get; set; }
+    public string Code { get; }
 
-    public string Message { get; set; }
+    public string Message { get; }
 
-    public string Layer { get; set; }
+    public string Layer { get; }
 
-    public string ApplicationName { get; set; }
+    public string ApplicationName { get; }
 
-    public IEnumerable<KeyValuePair<string, string>> Errors { get; set; }
+    public IEnumerable<KeyValuePair<string, string>> Errors { get; }
+
+    /// <summary>
+    /// Represents a none/error-free state.
+    /// </summary>
+    public static Error None => default;
 
     public Error(string code, string message, IEnumerable<KeyValuePair<string, string>> errors = null)
     {
@@ -37,20 +42,19 @@ public struct Error : IError
         Errors = errors;
     }
 
-    public Error()
-    {
-        Layer = ResultContext.Layer;
-        ApplicationName = ResultContext.ApplicationName;
-    }
-
     private static void ValidateCtor(string code, string message)
     {
         if (string.IsNullOrEmpty(code))
             throw new ArgumentNullException(nameof(code));
 
         if (string.IsNullOrEmpty(message))
-            throw new ArgumentNullException(nameof(code));
+            throw new ArgumentNullException(nameof(message));
     }
 
-    public override string ToString() => $"[{Layer}] {ApplicationName} - {Code}: {Message}";
+    public override string ToString() => IsNone ? "None" : $"[{Layer}] {ApplicationName} - {Code}: {Message}";
+
+    /// <summary>
+    /// Indicates whether this error represents a none/error-free state.
+    /// </summary>
+    public bool IsNone => string.IsNullOrEmpty(Code) && string.IsNullOrEmpty(Message);
 }

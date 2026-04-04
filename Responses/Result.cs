@@ -1,155 +1,123 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Diagnostics;
+using Newtonsoft.Json;
 
 namespace Responses;
 
-public struct Result
+/// <summary>
+/// Represents the result of an operation that may or may not succeed.
+/// This is the primary entry point for creating Result instances.
+/// </summary>
+public static class Result
 {
+    [DebuggerStepThrough]
+    public static Result Ok() => new(true, Error.None);
 
-    [JsonProperty(nameof(Error))]
-    private Error _error;
+    [DebuggerStepThrough]
+    public static Result Fail(string code, string message) => new(false, new Error(code, message));
+
+    [DebuggerStepThrough]
+    public static Result Fail((string code, string message) error) => new(false, new Error(error.code, error.message));
+
+    [DebuggerStepThrough]
+    public static Result Fail(Tuple<string, string> error) => new(false, new Error(error.Item1, error.Item2));
+
+    [DebuggerStepThrough]
+    public static Result Fail(Error error) => new(false, error);
+
+    [DebuggerStepThrough]
+    public static Result<T> Ok<T>(T value) => new(true, Error.None, value);
+
+    [DebuggerStepThrough]
+    public static Result<T> Fail<T>(string code, string message) => new(false, new Error(code, message), default!);
+
+    [DebuggerStepThrough]
+    public static Result<T> Fail<T>((string code, string message) error) => new(false, new Error(error.code, error.message), default!);
+
+    [DebuggerStepThrough]
+    public static Result<T> Fail<T>(Tuple<string, string> error) => new(false, new Error(error.Item1, error.Item2), default!);
+
+    [DebuggerStepThrough]
+    public static Result<T> Fail<T>(Error error) => new(false, error, default!);
+
+    [DebuggerStepThrough]
+    public static Result<TValue, TError> Ok<TValue, TError>(TValue value) where TError : IError => new(true, default!, value);
+
+    [DebuggerStepThrough]
+    public static Result<TValue, TError> Fail<TValue, TError>(TError error) where TError : IError => new(false, error, default!);
+}
+
+/// <summary>
+/// Represents the result of an operation without a return value.
+/// </summary>
+public readonly struct Result
+{
+    [JsonProperty(nameof(_error))]
+    private readonly Error _error;
 
     [JsonIgnore]
     public Error Error
     {
         get
         {
-            if (IsSuccess)
-                throw new InvalidOperationException(ResultMessages.ErrorMessageToSuccess);
-
+            EnsureSuccess();
             return _error;
         }
-        private set => _error = value;
     }
-    [JsonProperty]
-    public bool IsSuccess { get; private set; }
 
-    public Result(bool isSuccess, Error error)
+    [JsonProperty]
+    public bool IsSuccess { get; }
+
+    internal Result(bool isSuccess, Error error)
     {
         IsSuccess = isSuccess;
         _error = error;
     }
 
-    public Result(string code, string message)
+    /// <summary>
+    /// Ensures the result is successful, otherwise throws an exception.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown when the result represents a failure.</exception>
+    public void EnsureSuccess()
     {
-        IsSuccess = false;
-        _error = new Error(code, message);
-    }
-
-    public Result((string code, string message) error)
-    {
-        IsSuccess = false;
-        _error = new Error(error.code, error.message);
-    }
-
-    [DebuggerStepThrough]
-    public static Result Ok() => new Result(true, default);
-
-    [DebuggerStepThrough]
-    public static Result Fail(string code, string message)
-    {
-        return new Result(code, message);
-    }
-
-    [DebuggerStepThrough]
-    public static Result Fail((string, string) item)
-    {
-        return Fail(item.ToTuple());
-    }
-
-    [DebuggerStepThrough]
-    public static Result Fail(Tuple<string, string> item)
-    {
-        return new Result(item.Item1, item.Item2);
-    }
-
-    [DebuggerStepThrough]
-    public static Result Fail(Error error)
-    {
-        return new Result(false, error);
-    }
-
-    [DebuggerStepThrough]
-    public static Result<T> Ok<T>(T value)
-    {
-        return new Result<T>(true, default, value);
-    }
-
-    [DebuggerStepThrough]
-    public static Result<T> Fail<T>(string code, string message)
-    {
-        return new Result<T>(false, new Error(code, message), default);
-    }
-
-    [DebuggerStepThrough]
-    public static Result<T> Fail<T>((string, string) item)
-    {
-        return Fail<T>(item.ToTuple());
-    }
-
-    [DebuggerStepThrough]
-    public static Result<T> Fail<T>(Tuple<string, string> item)
-    {
-        return new Result<T>(false, new Error(item.Item1, item.Item2), default);
-    }
-
-    [DebuggerStepThrough]
-    public static Result<T> Fail<T>(Error error)
-    {
-        return new Result<T>(false, error, default);
-    }
-
-    [DebuggerStepThrough]
-    public static Result<TValue, TError> Ok<TValue, TError>(TValue value) where TError : IError
-    {
-        return new Result<TValue, TError>(true, default, value);
-    }
-
-    [DebuggerStepThrough]
-    public static Result<TValue, TError> Fail<TValue, TError>(TError error) where TError : IError
-    {
-        return new Result<TValue, TError>(false, error, default);
+        if (!IsSuccess)
+            throw new InvalidOperationException(ResultMessages.ErrorMessageToSuccess);
     }
 }
 
-public struct Result<T>
+/// <summary>
+/// Represents the result of an operation with a return value.
+/// </summary>
+/// <typeparam name="T">The type of the value returned by the operation.</typeparam>
+public readonly struct Result<T>
 {
-
-
-    [JsonProperty(nameof(Error))]
-    private Error _error;
+    [JsonProperty(nameof(_error))]
+    private readonly Error _error;
 
     [JsonIgnore]
     public Error Error
     {
         get
         {
-            if (IsSuccess)
-                throw new InvalidOperationException(ResultMessages.ErrorMessageToSuccess);
-
+            EnsureSuccess();
             return _error;
         }
-        private set => _error = value;
     }
 
     [JsonProperty]
-    public bool IsSuccess { get; private set; }
+    public bool IsSuccess { get; }
 
-    [JsonProperty(nameof(Value))]
-    private T _value;
+    [JsonProperty(nameof(_value))]
+    private readonly T _value;
 
     [JsonIgnore]
     public T Value
     {
         get
         {
-            if (!IsSuccess)
-                throw new InvalidOperationException(ResultMessages.ValueToFailure);
-
+            EnsureSuccess();
             return _value;
         }
-        private set => _value = value;
     }
 
     internal Result(bool isSuccess, Error error, T value)
@@ -158,37 +126,52 @@ public struct Result<T>
         _error = error;
         _value = value;
     }
+
+    /// <summary>
+    /// Ensures the result is successful, otherwise throws an exception.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown when the result represents a failure.</exception>
+    public void EnsureSuccess()
+    {
+        if (!IsSuccess)
+            throw new InvalidOperationException(ResultMessages.ValueToFailure);
+    }
 }
 
-public struct Result<TValue, TError> where TError : IError
+/// <summary>
+/// Represents the result of an operation with a custom error type.
+/// </summary>
+/// <typeparam name="TValue">The type of the value returned by the operation.</typeparam>
+/// <typeparam name="TError">The type of the error, which must implement IError.</typeparam>
+public readonly struct Result<TValue, TError> where TError : IError
 {
-
-
-    [JsonProperty(nameof(Error))]
-    private TError _error;
+    [JsonProperty(nameof(_error))]
+    private readonly TError _error;
 
     [JsonIgnore]
     public TError Error
     {
         get
         {
-            return !IsSuccess ? _error :
-            throw new InvalidOperationException(ResultMessages.ErrorMessageToSuccess);
+            EnsureSuccess();
+            return _error;
         }
-        private set => _error = value;
     }
 
     [JsonProperty]
-    public bool IsSuccess { get; private set; }
+    public bool IsSuccess { get; }
 
-    [JsonProperty(nameof(Value))]
-    private TValue _value;
+    [JsonProperty(nameof(_value))]
+    private readonly TValue _value;
 
     [JsonIgnore]
     public TValue Value
     {
-        get => !IsSuccess ? throw new InvalidOperationException(ResultMessages.ValueToFailure) : _value;
-        private set => _value = value;
+        get
+        {
+            EnsureSuccess();
+            return _value;
+        }
     }
 
     internal Result(bool isSuccess, TError error, TValue value)
@@ -196,6 +179,16 @@ public struct Result<TValue, TError> where TError : IError
         IsSuccess = isSuccess;
         _error = error;
         _value = value;
+    }
+
+    /// <summary>
+    /// Ensures the result is successful, otherwise throws an exception.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown when the result represents a failure.</exception>
+    public void EnsureSuccess()
+    {
+        if (!IsSuccess)
+            throw new InvalidOperationException(ResultMessages.ValueToFailure);
     }
 }
 
