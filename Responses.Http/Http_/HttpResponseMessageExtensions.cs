@@ -26,7 +26,7 @@ public static class HttpResponseMessageExtensions
             return (default, j);
         }
     }
-    public static async Task<Result> ReceiveResult(this Task<HttpResponseMessage> response, JsonSerializer serializer = null)
+    public static async Task<UnitResult> ReceiveResult(this Task<HttpResponseMessage> response, JsonSerializer serializer = null)
     {
         try
         {
@@ -66,7 +66,7 @@ public static class HttpResponseMessageExtensions
             return Result.Fail((await response.ConfigureAwait(false))?.StatusCode.ToString(), ex.Message);
         }
     }
-    public static async Task<Result> ReceiveResult(this Task<IFlurlResponse> response,
+    public static async Task<UnitResult> ReceiveResult(this Task<IFlurlResponse> response,
         JsonSerializer serializer = null)
     {
         using var resp = await response.ConfigureAwait(false);
