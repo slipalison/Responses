@@ -11,19 +11,19 @@ namespace Responses;
 public static class Result
 {
     [DebuggerStepThrough]
-    public static Result Ok() => new(true, Error.None);
+    public static UnitResult Ok() => new(true, Error.None);
 
     [DebuggerStepThrough]
-    public static Result Fail(string code, string message) => new(false, new Error(code, message));
+    public static UnitResult Fail(string code, string message) => new(false, new Error(code, message));
 
     [DebuggerStepThrough]
-    public static Result Fail((string code, string message) error) => new(false, new Error(error.code, error.message));
+    public static UnitResult Fail((string code, string message) error) => new(false, new Error(error.code, error.message));
 
     [DebuggerStepThrough]
-    public static Result Fail(Tuple<string, string> error) => new(false, new Error(error.Item1, error.Item2));
+    public static UnitResult Fail(Tuple<string, string> error) => new(false, new Error(error.Item1, error.Item2));
 
     [DebuggerStepThrough]
-    public static Result Fail(Error error) => new(false, error);
+    public static UnitResult Fail(Error error) => new(false, error);
 
     [DebuggerStepThrough]
     public static Result<T> Ok<T>(T value) => new(true, Error.None, value);
@@ -50,7 +50,7 @@ public static class Result
 /// <summary>
 /// Represents the result of an operation without a return value.
 /// </summary>
-public readonly struct Result
+public readonly struct UnitResult
 {
     [JsonProperty(nameof(_error))]
     private readonly Error _error;
@@ -68,7 +68,7 @@ public readonly struct Result
     [JsonProperty]
     public bool IsSuccess { get; }
 
-    internal Result(bool isSuccess, Error error)
+    internal UnitResult(bool isSuccess, Error error)
     {
         IsSuccess = isSuccess;
         _error = error;
