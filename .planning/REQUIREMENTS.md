@@ -217,6 +217,22 @@ Phase 5: Testing + Quality (R44-R54)
 
 ---
 
+## Phase Traceability
+
+> Updated: 6 de abril de 2026 — ROADMAP.md created
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| R1-R9, R15-R22 | Phase 1: Core Foundation | Mapped |
+| R10-R14, R23-R27 | Phase 2: Error Model + Serialization | Mapped |
+| R28-R37 | Phase 3: HTTP Extensions (Flurl) | Mapped |
+| R38-R43, R50-R54 | Phase 4: Performance + Quality | Mapped |
+| R44-R49 | Phase 5: Testing + Polish | Mapped |
+
+**Coverage:** 54/54 v1 requirements mapped (100%). 0 orphaned.
+
+---
+
 *Rightsized from research: FEATURES.md (25 table stakes + 26 differentiators analyzed)*
 *v1 scope: 54 requirements across 8 categories*
 *v2 scope: 10 requirements deferred*
