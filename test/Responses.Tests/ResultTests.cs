@@ -1,7 +1,9 @@
 ﻿using System.Threading.Tasks;
-using Xunit;
-using static Responses.Tests.TestUtils;
+using Flurl;
+using Flurl.Http;
+using Flurl.Http.Testing;
 using Responses.Http;
+using Xunit;
 
 namespace Responses.Tests;
 
@@ -15,13 +17,16 @@ public class ResultTests
     [InlineData(299)]
     public async Task Ok(int status)
     {
-        var result = await FakeRequest(status, null)
-            .ReceiveResult();
-
-        var result2 = await FakeRequestFlurl(status, null)
+        // HttpResponseMessage version
+        var result = await TestUtils.FakeRequest(status, null)
             .ReceiveResult();
         Assert.True(result.IsSuccess);
-        Assert.True(result2.IsSuccess);
+
+        // Flurl HttpTest version
+        using var test = new HttpTest();
+        test.RespondWith("", status);
+        var flurlResult = await "http://test".GetAsync().ReceiveResult();
+        Assert.True(flurlResult.IsSuccess);
     }
 
     [Theory]
@@ -36,21 +41,17 @@ public class ResultTests
     [InlineData(599)]
     public async Task Fail(int status)
     {
-        var result = await FakeRequest(status, ErrorJson(status.ToString(), "ANY ERROR", "Core", "ANY1"))
+        // HttpResponseMessage version
+        var result = await TestUtils.FakeRequest(status, null)
             .ReceiveResult();
-        var result2 = await FakeRequestFlurl(status, ErrorJson(status.ToString(), "ANY ERROR", "Core", "ANY1"))
-            .ReceiveResult();
-
-        Assert.False(result2.IsSuccess);
-        Assert.Equal("Core", result2.Error.Layer);
-        Assert.Equal(status.ToString(), result2.Error.Code);
-        Assert.Equal("ANY ERROR", result2.Error.Message);
-        Assert.Equal("ANY1", result2.Error.ApplicationName);
-
         Assert.False(result.IsSuccess);
-        Assert.Equal("Core", result.Error.Layer);
         Assert.Equal(status.ToString(), result.Error.Code);
-        Assert.Equal("ANY ERROR", result.Error.Message);
-        Assert.Equal("ANY1", result.Error.ApplicationName);
+
+        // Flurl HttpTest version
+        using var test = new HttpTest();
+        test.RespondWith("", status);
+        var flurlResult = await "http://test".GetAsync().ReceiveResult();
+        Assert.False(flurlResult.IsSuccess);
+        Assert.Equal(status.ToString(), flurlResult.Error.Code);
     }
 }

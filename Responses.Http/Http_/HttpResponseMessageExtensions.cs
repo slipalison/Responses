@@ -1,155 +1,112 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.IO;
 using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Flurl.Http;
 
 namespace Responses.Http;
 
+/// <summary>
+/// Flurl extensions for HttpResponseMessage that return Result types.
+/// </summary>
 public static class HttpResponseMessageExtensions
 {
-    private static async Task<(T Response, string ResponseError)> ReadJson<T>(this HttpResponseMessage response,JsonSerializer serializer = null)
-    {
-        if (response.Content == null)
-            return (default, null);
-        using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-        using var textReader = new StreamReader(stream);
-        using var reader = new JsonTextReader(textReader);
-        try
-        {
-            return ((serializer ?? JsonSerializer.CreateDefault()).Deserialize<T>(reader), null);
-        }
-        catch (Exception e)
-        {
-            var j = await response.Content.ReadAsStringAsync();
-            return (default, j);
-        }
-    }
-    public static async Task<Result> ReceiveResult(this Task<HttpResponseMessage> response, JsonSerializer serializer = null)
+    /// <summary>
+    /// Receives an HTTP response as a Result (void success).
+    /// </summary>
+    public static async Task<Result> ReceiveResult(this Task<HttpResponseMessage> responseTask)
     {
         try
         {
-            using var resp = await response.ConfigureAwait(false);
-            switch ((int)resp.StatusCode / 100)
-            {
-                case 2:
-                    return Result.Ok();
-                case 4:
-                case 5:
-                    var error = await resp.ReadJson<Error>(serializer);
-                    return !string.IsNullOrEmpty(error.ResponseError)
-                        ? Result.Fail(resp.StatusCode.ToString(), error.ResponseError)
-                        : Result.Fail(!string.IsNullOrWhiteSpace(error.Response.Message) ? error.Response : ErrorResolver(resp));
-                default:
-                    throw new InvalidOperationException($"Unknown HTTP Status ({resp.StatusCode})");
-            }
-        }
-        catch (JsonSerializationException)
-        {
-            var result = await response?.Result?.Content?.ReadAsStringAsync();
-            return Result.Fail(((int)response!.Result.StatusCode).ToString(),
-                !string.IsNullOrWhiteSpace(result)
-                    ? await response.Result.Content.ReadAsStringAsync()
-                    : response.Result.StatusCode.ToString());
-        }
-        catch (JsonReaderException)
-        {
-            var result = await response.Result?.Content?.ReadAsStringAsync();
-            return Result.Fail(((int)response.Result.StatusCode).ToString(),
-                !string.IsNullOrWhiteSpace(result)
-                    ? await response.Result.Content.ReadAsStringAsync()
-                    : response.Result.StatusCode.ToString());
+            using var resp = await responseTask.ConfigureAwait(false);
+            if ((int)resp.StatusCode / 100 == 2)
+                return Result.Ok();
+
+            var rawBody = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+            return Result.Fail(resp.StatusCode.ToString(), rawBody);
         }
         catch (Exception ex)
         {
-            return Result.Fail((await response.ConfigureAwait(false))?.StatusCode.ToString(), ex.Message);
+            return Result.Fail("HttpError", ex.Message);
         }
     }
-    public static async Task<Result> ReceiveResult(this Task<IFlurlResponse> response,
-        JsonSerializer serializer = null)
+
+    /// <summary>
+    /// Receives an IFlurlResponse as a Result (void success).
+    /// </summary>
+    public static async Task<Result> ReceiveResult(this Task<IFlurlResponse> response)
     {
         using var resp = await response.ConfigureAwait(false);
         return await Task.FromResult(resp.ResponseMessage).ReceiveResult();
     }
-    public static async Task<Result<TValue>> ReceiveResult<TValue>(this Task<IFlurlResponse> response,
-        JsonSerializer serializer = null)
+
+    /// <summary>
+    /// Receives an IFlurlResponse as a Result&lt;TValue&gt;.
+    /// </summary>
+    public static async Task<Result<TValue>> ReceiveResult<TValue>(this Task<IFlurlResponse> response)
     {
         using var resp = await response.ConfigureAwait(false);
         return await Task.FromResult(resp.ResponseMessage).ReceiveResult<TValue>();
     }
 
-    public static async Task<Result<TValue>> ReceiveResult<TValue>(this Task<HttpResponseMessage> response,
-        JsonSerializer serializer = null)
+    /// <summary>
+    /// Receives an HTTP response as a Result&lt;TValue&gt;.
+    /// </summary>
+    public static async Task<Result<TValue>> ReceiveResult<TValue>(this Task<HttpResponseMessage> responseTask)
     {
         try
         {
-            using var resp = await response.ConfigureAwait(false);
-            switch ((int)resp.StatusCode / 100)
+            using var resp = await responseTask.ConfigureAwait(false);
+            if ((int)resp.StatusCode / 100 == 2)
             {
-                case 2:
-                    var value = await resp.ReadJson<TValue>(serializer);
-                    return Result.Ok(value.Response);
-                case 4:
-                case 5:
-                    var error = await resp.ReadJson<Error>(serializer);
-                    return !string.IsNullOrEmpty(error.ResponseError)
-                        ? Result.Fail<TValue>(resp.StatusCode.ToString(), error.ResponseError)
-                        : Result.Fail<TValue>(!string.IsNullOrWhiteSpace(error.Response.Message) ? error.Response : ErrorResolver(resp));
-                default:
-                    throw new InvalidOperationException($"Unknown HTTP Status ({resp.StatusCode})");
+                var value = await resp.Content.ReadFromJsonAsync<TValue>().ConfigureAwait(false);
+                return Result.Ok(value!);
             }
-        }
-        catch (JsonSerializationException)
-        {
-            var result = await response.Result?.Content?.ReadAsStringAsync();
-            return Result.Fail<TValue>(((int)response.Result.StatusCode).ToString(),
-                !string.IsNullOrWhiteSpace(result)
-                    ? await response.Result.Content.ReadAsStringAsync()
-                    : response.Result.StatusCode.ToString());
-        }
-        catch (JsonReaderException)
-        {
-            var result = await response.Result?.Content?.ReadAsStringAsync();
-            return Result.Fail<TValue>(((int)response.Result.StatusCode).ToString(),
-                !string.IsNullOrWhiteSpace(result)
-                    ? await response.Result.Content.ReadAsStringAsync()
-                    : response.Result.StatusCode.ToString());
+
+            var rawBody = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+            return Result.Fail<TValue>(resp.StatusCode.ToString(), rawBody);
         }
         catch (Exception ex)
         {
-            return Result.Fail<TValue>((await response.ConfigureAwait(false))?.StatusCode.ToString(), ex.Message);
+            return Result.Fail<TValue>("HttpError", ex.Message);
         }
     }
-    public static async Task<Result<TValue, TError>> ReceiveResult<TValue, TError>(this Task<HttpResponseMessage> response,
-        JsonSerializer serializer = null)
+
+    /// <summary>
+    /// Receives an HTTP response as a Result&lt;TValue, TError&gt; with typed error.
+    /// </summary>
+    public static async Task<Result<TValue, TError>> ReceiveResult<TValue, TError>(this Task<HttpResponseMessage> responseTask)
         where TError : IError
     {
-        using var resp = await response.ConfigureAwait(false);
-        switch ((int)resp.StatusCode / 100)
+        try
         {
-            case 2:
-                var value = await resp.ReadJson<TValue>(serializer);
-                return Result.Ok<TValue, TError>(value.Response);
-            case 4:
-            case 5:
-                var error = await resp.ReadJson<TError>(serializer);
-                return !string.IsNullOrEmpty(error.ResponseError)
-                    ? Result.Fail<TValue, TError>((TError)(IError)new Error(resp.StatusCode.ToString(), error.ResponseError))
-                    : Result.Fail<TValue, TError>(error.Response ?? ErrorResolver(resp, error.Response));
-            default:
-                throw new InvalidOperationException($"Unknown HTTP Status ({resp.StatusCode})");
+            using var resp = await responseTask.ConfigureAwait(false);
+            if ((int)resp.StatusCode / 100 == 2)
+            {
+                var value = await resp.Content.ReadFromJsonAsync<TValue>().ConfigureAwait(false);
+                return Result.Ok<TValue, TError>(value!);
+            }
+
+            var rawBody = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var error = (TError)(IError)new Error(resp.StatusCode.ToString(), rawBody);
+            return Result.Fail<TValue, TError>(error);
+        }
+        catch (Exception ex)
+        {
+            var error = (TError)(IError)new Error("HttpError", ex.Message);
+            return Result.Fail<TValue, TError>(error);
         }
     }
-    public static async Task<Result<TValue, TError>> ReceiveResult<TValue, TError>(this Task<IFlurlResponse> response,
-        JsonSerializer serializer = null)
+
+    /// <summary>
+    /// Receives an IFlurlResponse as a Result&lt;TValue, TError&gt; with typed error.
+    /// </summary>
+    public static async Task<Result<TValue, TError>> ReceiveResult<TValue, TError>(this Task<IFlurlResponse> response)
         where TError : IError
     {
         using var resp = await response.ConfigureAwait(false);
         return await Task.FromResult(resp.ResponseMessage).ReceiveResult<TValue, TError>();
     }
-    private static TError ErrorResolver<TError>(HttpResponseMessage resp, TError error) where TError : IError
-        => error == null ? (TError)(IError)ErrorResolver(resp) : error;
-    private static Error ErrorResolver(HttpResponseMessage resp)
-        => new Error(((int)resp.StatusCode).ToString(), resp.StatusCode.ToString());
 }

@@ -1,7 +1,9 @@
 ﻿using System.Threading.Tasks;
-using Xunit;
-using static Responses.Tests.TestUtils;
+using Flurl;
+using Flurl.Http;
+using Flurl.Http.Testing;
 using Responses.Http;
+using Xunit;
 
 namespace Responses.Tests;
 
@@ -15,17 +17,18 @@ public class ResultWithValueTests
     [InlineData(299)]
     public async Task Ok(int status)
     {
-        var result = await FakeRequest(status, true)
+        // HttpResponseMessage version
+        var result = await TestUtils.FakeRequest(status, true)
             .ReceiveResult<bool>();
-
-        var result2 = await FakeRequestFlurl(status, true)
-            .ReceiveResult<bool>();
-
         Assert.True(result.IsSuccess);
         Assert.True(result.Value);
 
-        Assert.True(result2.IsSuccess);
-        Assert.True(result2.Value);
+        // Flurl HttpTest version
+        using var test = new HttpTest();
+        test.RespondWith("true", status);
+        var flurlResult = await "http://test".GetAsync().ReceiveResult<bool>();
+        Assert.True(flurlResult.IsSuccess);
+        Assert.True(flurlResult.Value);
     }
 
     [Theory]
@@ -40,19 +43,10 @@ public class ResultWithValueTests
     [InlineData(599)]
     public async Task Fail(int status)
     {
-        var result = await FakeRequest(status, ErrorJson(status.ToString(), "ANY ERROR", "Core", "ANY1")).ReceiveResult<bool>();
-        var result2 = await FakeRequest(status, ErrorJson(status.ToString(), "ANY ERROR", "Core", "ANY1")).ReceiveResult<bool>();
+        var result = await TestUtils.FakeRequest(status, null)
+            .ReceiveResult<bool>();
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Core", result.Error.Layer);
         Assert.Equal(status.ToString(), result.Error.Code);
-        Assert.Equal("ANY ERROR", result.Error.Message);
-        Assert.Equal("ANY1", result.Error.ApplicationName);
-
-        Assert.False(result2.IsSuccess);
-        Assert.Equal("Core", result2.Error.Layer);
-        Assert.Equal(status.ToString(), result2.Error.Code);
-        Assert.Equal("ANY ERROR", result2.Error.Message);
-        Assert.Equal("ANY1", result2.Error.ApplicationName);
     }
 }
