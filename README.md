@@ -5,7 +5,7 @@
 ![.NET](https://img.shields.io/badge/.NET-10.0-blue)
 ![Version](https://img.shields.io/badge/version-2.0.0-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
-
+[![codecov](https://codecov.io/gh/slipalison/Responses/branch/master/graph/badge.svg)](https://codecov.io/gh/slipalison/Responses)
 ---
 
 ## Table of Contents

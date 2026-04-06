@@ -9,7 +9,7 @@ namespace Responses.Tests;
 /// <summary>
 /// Comprehensive tests for Serialization classes coverage.
 /// Covers: ResultDto, ResultDto&lt;T&gt;, ResultDto&lt;TValue,TError&gt;, ErrorDto,
-/// ErrorJsonConverter, ResultJsonConverter, ResultJsonContext.
+/// ResultJsonContext. Uses the DTO pattern — no custom converters needed.
 /// </summary>
 public class SerializationCoverageTests
 {
