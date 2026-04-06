@@ -152,4 +152,34 @@ public class StjDtoRoundTripTests
     }
 
     #endregion
+
+    #region Cross-Type Deserialization (Not Supported — R26)
+
+    public class CrossTypeDeserializationTests
+    {
+        /// <summary>
+        /// R26: Result&lt;T&gt; deserialized as Result is not supported (documented limitation).
+        /// The reverse (Result → Result&lt;T&gt;) is also not supported.
+        /// Use the correct DTO type for each Result variant.
+        /// </summary>
+        [Fact]
+        public void CrossTypeDeserialization_FailsSilently()
+        {
+            // Serialize Result<int>
+            var result = Result.Fail<int>("ERR001", "message");
+            var dto = ResultDto<int>.FromResult(result);
+            var json = JsonSerializer.Serialize(dto);
+
+            // Deserializing as ResultDto (void) works but loses the value
+            var dtoBack = JsonSerializer.Deserialize<ResultDto>(json);
+            var resultBack = dtoBack.ToResult();
+
+            Assert.True(resultBack.IsFailed);
+            Assert.Single(resultBack.Errors);
+            Assert.Equal("ERR001", resultBack.Errors[0].Code);
+            // The int value is lost — use ResultDto<int> to preserve it
+        }
+    }
+
+    #endregion
 }

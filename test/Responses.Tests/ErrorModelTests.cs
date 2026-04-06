@@ -232,7 +232,7 @@ public class ErrorModelTests
         [Fact]
         public void ErrorCollection_Empty_HasZeroCount()
         {
-            Assert.Equal(0, ErrorCollection.Empty.Count);
+            Assert.Empty(ErrorCollection.Empty);
         }
 
         [Fact]
