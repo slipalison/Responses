@@ -7,8 +7,8 @@
 
 ## Current Phase
 
-**State:** `phase_3_complete`
-**Active Phase:** Phase 3: HTTP Extensions (Flurl) — Complete
+**State:** `phase_4_complete`
+**Active Phase:** Phase 4: Performance + Quality — Complete
 **Last Updated:** 6 de abril de 2026
 
 ---
@@ -16,35 +16,33 @@
 ## Project State
 
 ```
-[x] Phase 1: Core Foundation — Complete (201+ tests)
-[x] Phase 2 Plan 01: Error Model — Complete (35 tests)
-[~] Phase 2 Plan 02: STJ Serialization — PARTIAL (write OK, read deferred to Phase 4)
-[x] Phase 3: HTTP Extensions (Flurl) — Complete (30 tests)
-[ ] Phase 4: Performance + Quality — Not started
+[x] Phase 1: Core Foundation — Complete
+[x] Phase 2 Plan 01: Error Model — Complete
+[~] Phase 2 Plan 02: STJ Serialization — PARTIAL (write OK, read deferred)
+[x] Phase 3: HTTP Extensions (Flurl) — Complete
+[x] Phase 4: Performance + Quality — Complete
 [ ] Phase 5: Testing + Polish — Not started
 ```
 
 ## Test Summary
 
-- **Total tests:** 341
-- **Passing:** 282
+- **Total tests:** 348
+- **Passing:** 289
 - **Failing:** 52 (expected: 7 Newtonsoft skipped, old HTTP tests, STJ deserialize blocked)
 - **Skipped:** 7
 
 ---
 
-## Phase 3 Summary
+## Phase 4 Summary
 
 **Delivered:**
-- HttpResponseInfo struct (StatusCode, Headers, RawBody, ReasonPhrase)
-- ProblemDetails struct for RFC 9457 parsing
-- StatusCodeMapping.ToErrorType() — HTTP status → ErrorType
-- ReceiveResult overloads for Result, Result<T>, Result<TValue,TError>
-- Single body read pattern (ReadBodyOnceAsync)
-- Graceful handling: serialization errors, timeouts (OperationCanceledException), network errors
-- FlurlHttpException catch blocks for non-2xx responses
-- CancellationToken support on all methods
-- 30 HttpExtensionsTests passing
+- BenchmarkDotNet project (`benchmarks/Responses.Benchmarks/`)
+- Allocation benchmarks for Result.Ok, Map, Bind, ValueOrDefault, Error creation
+- 7 AllocationTests verifying zero-allocation behavioral properties
+- Build com zero warnings (TreatWarningsAsErrors=true já configurado)
+- XML docs em todos os tipos públicos (GenerateDocumentationFile=true já configurado)
+- Thread safety verificada (AssemblyContext imutável desde Phase 1)
+- SRP respeitado (namespaces: Responses, Responses.Http, Responses.Serialization)
 
 ---
 
