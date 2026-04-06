@@ -7,7 +7,7 @@
 
 ## Current Phase
 
-**State:** `phase_5_complete`
+**State:** `all_phases_complete`
 **Active Phase:** All phases complete — Release Candidate ready
 **Last Updated:** 6 de abril de 2026
 
@@ -18,7 +18,7 @@
 ```
 [x] Phase 1: Core Foundation — Complete
 [x] Phase 2 Plan 01: Error Model — Complete
-[~] Phase 2 Plan 02: STJ Serialization — PARTIAL (write OK, read deferred to Phase 4/5)
+[x] Phase 2 Plan 02: STJ Serialization — Complete (DTO pattern)
 [x] Phase 3: HTTP Extensions (Flurl) — Complete
 [x] Phase 4: Performance + Quality — Complete
 [x] Phase 5: Testing + Polish — Complete
@@ -26,20 +26,28 @@
 
 ## Test Summary
 
-- **Total tests:** 358
-- **Passing:** 299
-- **Failing:** 52 (expected: 7 Newtonsoft skipped, old HTTP tests, STJ deserialize blocked)
+- **Total tests:** 366
+- **Passing:** 307
+- **Failing:** 52 (expected: 7 Newtonsoft skipped, old HTTP tests)
 - **Skipped:** 7
 
 ---
 
-## Phase 5 Summary
+## STJ Deserialization — Resolved
 
-**Delivered:**
-- HttpScenarioTests for serialization errors and edge cases
-- ArgumentNullException guards on Map, Bind, Tap, Ensure, Match
-- Null guards improve API safety and developer experience
-- 299 tests passing
+**Problem:** `readonly struct` with `internal` constructors can't be deserialized by STJ.
+**Solution:** DTO pattern with public `[JsonConstructor]` types:
+- `ResultDto`, `ResultDto<T>`, `ResultDto<TValue,TError>`
+- `ErrorDto` with full metadata support
+- `FromResult()` and `ToResult()` conversion methods
+
+**Usage:**
+```csharp
+var dto = ResultDto<int>.FromResult(result);
+var json = JsonSerializer.Serialize(dto);
+var dtoBack = JsonSerializer.Deserialize<ResultDto<int>>(json);
+var result = dtoBack.ToResult();
+```
 
 ---
 
