@@ -229,6 +229,31 @@ Phase 1: Core Foundation ──► Phase 2: Error Model + Serialization ──�
 
 ---
 
+## Phase 6: Extended Status Code Mapping
+
+**Goal:** Suporte completo a qualquer HTTP status code, incluindo customizados. `ErrorType` deve cobrir todos os códigos padrão HTTP (429, 502, 503, etc.) e ter fallback robusto para códigos desconhecidos.
+
+**Requirements:** R31 (extended)
+
+**Deliverables:**
+- `ErrorType` enum expandido — TooManyRequests (429), BadGateway (502), ServiceUnavailable (503), GatewayTimeout (504), ClientError (4xx genérico), etc.
+- `StatusCodeMapping` completo — switch expression cobrindo todos os status codes HTTP padrão
+- Fallback inteligente — códigos 4xx não mapeados → Validation/ClientError, 5xx → ServerError
+- Suporte a códigos customizados (ex: 418, 450) com fallback para Unknown
+
+**Success Criteria:**
+1. `StatusCodeMapping.ToErrorType(429)` → `ErrorType.TooManyRequests`
+2. `StatusCodeMapping.ToErrorType(503)` → `ErrorType.ServiceUnavailable`
+3. `StatusCodeMapping.ToErrorType(418)` → `ErrorType.Unknown` (código customizado)
+4. `StatusCodeMapping.ToErrorType(451)` → `ErrorType.Forbidden` (código 4xx não mapeado → melhor aproximação)
+5. Testes cobrindo todos os status codes HTTP 400-599
+
+**Research flag:** ✅ Standard — HTTP status codes são bem documentados (RFC 9110, RFC 6585).
+
+**Confirmation gate:** [ ] All status codes tested, fallback behavior verified
+
+---
+
 ## Phase Ordering Rationale
 
 ```

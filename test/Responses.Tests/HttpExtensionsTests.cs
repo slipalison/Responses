@@ -218,9 +218,9 @@ public class HttpExtensionsTests
         [InlineData(404, ErrorType.NotFound)]
         [InlineData(409, ErrorType.Conflict)]
         [InlineData(500, ErrorType.ServerError)]
-        [InlineData(502, ErrorType.ServerError)]
-        [InlineData(503, ErrorType.ServerError)]
-        [InlineData(422, ErrorType.Validation)]
+        [InlineData(502, ErrorType.BadGateway)]
+        [InlineData(503, ErrorType.ServiceUnavailable)]
+        [InlineData(422, ErrorType.UnprocessableEntity)]
         public void MapsStatusCodeToErrorType(int statusCode, ErrorType expectedType)
         {
             var actual = StatusCodeMapping.ToErrorType((System.Net.HttpStatusCode)statusCode);

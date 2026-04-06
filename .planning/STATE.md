@@ -22,7 +22,12 @@
 [x] Phase 3: HTTP Extensions (Flurl) — Complete
 [x] Phase 4: Performance + Quality — Complete
 [x] Phase 5: Testing + Polish — Complete
+[ ] Phase 6: Extended Status Code Mapping — Not started (just added)
 ```
+
+## Roadmap Evolution
+
+- **Phase 6 added:** Extended HTTP status code mapping — `ErrorType` enum limita códigos reconhecidos; HTTP pode retornar qualquer status code (429, 502, 503, customizados). Fase adicionada para cobrir este gap.
 
 ## Test Summary
 
