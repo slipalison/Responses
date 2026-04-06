@@ -91,70 +91,50 @@ public readonly struct ProblemDetails
 
 /// <summary>
 /// Maps HTTP status codes to <see cref="ErrorType"/> values.
-/// Covers all standard HTTP codes (RFC 9110, RFC 6585, RFC 4918, RFC 7725)
-/// with intelligent fallback for unmapped and custom codes.
+/// Since ErrorType values match HTTP status codes where applicable,
+/// this method casts the status code directly and provides intelligent
+/// fallback for unmapped or custom codes.
 /// </summary>
 public static class StatusCodeMapping
 {
     /// <summary>
     /// Maps an HTTP status code to the most appropriate <see cref="ErrorType"/>.
+    /// For standard HTTP codes, the ErrorType value equals the status code.
+    /// For unmapped codes, intelligent fallback is applied.
     /// </summary>
     /// <param name="statusCode">The HTTP status code to map.</param>
-    /// <returns>The corresponding ErrorType, or Unknown for non-HTTP-range codes.</returns>
+    /// <returns>The corresponding ErrorType, or Unknown for non-error codes.</returns>
     public static ErrorType ToErrorType(System.Net.HttpStatusCode statusCode) =>
         (int)statusCode switch
         {
-            // 4xx Client Errors — specific mappings
+            // Exact matches for defined ErrorType values (value = status code)
             400 => ErrorType.Validation,
             401 => ErrorType.Unauthorized,
-            402 => ErrorType.Validation,       // Payment Required (reserved, rarely used)
             403 => ErrorType.Forbidden,
             404 => ErrorType.NotFound,
-            405 => ErrorType.Validation,       // Method Not Allowed
-            406 => ErrorType.Validation,       // Not Acceptable
-            407 => ErrorType.Unauthorized,     // Proxy Authentication Required
-            408 => ErrorType.Timeout,          // Request Timeout
+            408 => ErrorType.Timeout,
             409 => ErrorType.Conflict,
-            410 => ErrorType.NotFound,         // Gone
-            411 => ErrorType.Validation,       // Length Required
-            412 => ErrorType.Validation,       // Precondition Failed
-            413 => ErrorType.Validation,       // Content Too Large
-            414 => ErrorType.Validation,       // URI Too Long
-            415 => ErrorType.Validation,       // Unsupported Media Type
-            416 => ErrorType.Validation,       // Range Not Satisfiable
-            417 => ErrorType.Validation,       // Expectation Failed
-            418 => ErrorType.Unknown,          // I'm a teapot (custom/RFC 2324)
-            421 => ErrorType.Validation,       // Misdirected Request
+            410 => ErrorType.Gone,
             422 => ErrorType.UnprocessableEntity,
             423 => ErrorType.Locked,
             424 => ErrorType.FailedDependency,
-            425 => ErrorType.Validation,       // Too Early
             426 => ErrorType.UpgradeRequired,
             428 => ErrorType.PreconditionRequired,
             429 => ErrorType.TooManyRequests,
-            431 => ErrorType.Validation,       // Request Header Fields Too Large
             451 => ErrorType.UnavailableForLegal,
-
-            // 4xx Fallback — unmapped client errors → Validation
-            >= 400 and < 500 => ErrorType.Validation,
-
-            // 5xx Server Errors — specific mappings
+            499 => ErrorType.ClientClosed,
             500 => ErrorType.ServerError,
-            501 => ErrorType.ServerError,      // Not Implemented
             502 => ErrorType.BadGateway,
             503 => ErrorType.ServiceUnavailable,
             504 => ErrorType.GatewayTimeout,
-            505 => ErrorType.ServerError,      // HTTP Version Not Supported
-            506 => ErrorType.ServerError,      // Variant Also Negotiates
-            507 => ErrorType.ServerError,      // Insufficient Storage
-            508 => ErrorType.ServerError,      // Loop Detected
-            510 => ErrorType.ServerError,      // Not Extended
-            511 => ErrorType.ServerError,      // Network Authentication Required
 
-            // 5xx Fallback — unmapped server errors → ServerError
+            // 4xx Fallback — unmapped client errors → Validation (400)
+            >= 400 and < 500 => ErrorType.Validation,
+
+            // 5xx Fallback — unmapped server errors → ServerError (500)
             >= 500 and < 600 => ErrorType.ServerError,
 
-            // Everything else (1xx, 2xx, 3xx, 600+) → Unknown
+            // 1xx, 2xx, 3xx, 600+ are not errors → Unknown
             _ => ErrorType.Unknown,
         };
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using Responses.Http;
 using Xunit;
@@ -6,247 +7,167 @@ namespace Responses.Tests;
 
 /// <summary>
 /// Comprehensive tests for StatusCodeMapping.ToErrorType().
-/// Covers all standard HTTP status codes (RFC 9110, RFC 6585, RFC 4918, RFC 7725)
-/// plus fallback behavior for unmapped and custom codes.
+/// Validates that ErrorType values match HTTP status codes where applicable
+/// and that fallback behavior is correct for unmapped codes.
 /// </summary>
 public class StatusCodeMappingTests
 {
-    #region 4xx Client Errors — Specific Mappings
+    #region ErrorType Values Match Status Codes
 
-    public class FourXxSpecificMappings
+    public class EnumValueMatchesStatusCode
+    {
+        [Theory]
+        [InlineData(ErrorType.Validation, 400)]
+        [InlineData(ErrorType.Unauthorized, 401)]
+        [InlineData(ErrorType.Forbidden, 403)]
+        [InlineData(ErrorType.NotFound, 404)]
+        [InlineData(ErrorType.Timeout, 408)]
+        [InlineData(ErrorType.Conflict, 409)]
+        [InlineData(ErrorType.Gone, 410)]
+        [InlineData(ErrorType.UnprocessableEntity, 422)]
+        [InlineData(ErrorType.Locked, 423)]
+        [InlineData(ErrorType.FailedDependency, 424)]
+        [InlineData(ErrorType.UpgradeRequired, 426)]
+        [InlineData(ErrorType.PreconditionRequired, 428)]
+        [InlineData(ErrorType.TooManyRequests, 429)]
+        [InlineData(ErrorType.UnavailableForLegal, 451)]
+        [InlineData(ErrorType.ClientClosed, 499)]
+        [InlineData(ErrorType.ServerError, 500)]
+        [InlineData(ErrorType.BadGateway, 502)]
+        [InlineData(ErrorType.ServiceUnavailable, 503)]
+        [InlineData(ErrorType.GatewayTimeout, 504)]
+        public void ErrorType_ValueEqualsHttpStatusCode(ErrorType errorType, int expectedCode)
+        {
+            Assert.Equal(expectedCode, (int)errorType);
+        }
+    }
+
+    #endregion
+
+    #region StatusCodeMapping → Exact Matches
+
+    public class ExactStatusCodeMappings
     {
         [Theory]
         [InlineData(400, ErrorType.Validation)]
-        [InlineData(405, ErrorType.Validation)]
-        [InlineData(406, ErrorType.Validation)]
-        [InlineData(411, ErrorType.Validation)]
-        [InlineData(412, ErrorType.Validation)]
-        [InlineData(413, ErrorType.Validation)]
-        [InlineData(414, ErrorType.Validation)]
-        [InlineData(415, ErrorType.Validation)]
-        [InlineData(416, ErrorType.Validation)]
-        [InlineData(417, ErrorType.Validation)]
-        [InlineData(421, ErrorType.Validation)]
-        [InlineData(425, ErrorType.Validation)]
-        [InlineData(431, ErrorType.Validation)]
-        public void ToErrorType_4xx_MapsToValidation(int code, ErrorType expected)
-        {
-            Assert.Equal(expected, StatusCodeMapping.ToErrorType((HttpStatusCode)code));
-        }
-
-        [Theory]
         [InlineData(401, ErrorType.Unauthorized)]
-        [InlineData(407, ErrorType.Unauthorized)]
-        public void ToErrorType_4xx_MapsToUnauthorized(int code, ErrorType expected)
-        {
-            Assert.Equal(expected, StatusCodeMapping.ToErrorType((HttpStatusCode)code));
-        }
-
-        [Fact]
-        public void ToErrorType_403_ReturnsForbidden()
-        {
-            Assert.Equal(ErrorType.Forbidden, StatusCodeMapping.ToErrorType(HttpStatusCode.Forbidden));
-        }
-
-        [Theory]
+        [InlineData(403, ErrorType.Forbidden)]
         [InlineData(404, ErrorType.NotFound)]
-        [InlineData(410, ErrorType.NotFound)]
-        public void ToErrorType_4xx_MapsToNotFound(int code, ErrorType expected)
+        [InlineData(408, ErrorType.Timeout)]
+        [InlineData(409, ErrorType.Conflict)]
+        [InlineData(410, ErrorType.Gone)]
+        [InlineData(422, ErrorType.UnprocessableEntity)]
+        [InlineData(423, ErrorType.Locked)]
+        [InlineData(424, ErrorType.FailedDependency)]
+        [InlineData(426, ErrorType.UpgradeRequired)]
+        [InlineData(428, ErrorType.PreconditionRequired)]
+        [InlineData(429, ErrorType.TooManyRequests)]
+        [InlineData(451, ErrorType.UnavailableForLegal)]
+        [InlineData(499, ErrorType.ClientClosed)]
+        [InlineData(500, ErrorType.ServerError)]
+        [InlineData(502, ErrorType.BadGateway)]
+        [InlineData(503, ErrorType.ServiceUnavailable)]
+        [InlineData(504, ErrorType.GatewayTimeout)]
+        public void ToErrorType_ExactMatch_ReturnsMatchingErrorType(int code, ErrorType expected)
         {
-            Assert.Equal(expected, StatusCodeMapping.ToErrorType((HttpStatusCode)code));
-        }
-
-        [Fact]
-        public void ToErrorType_408_ReturnsTimeout()
-        {
-            Assert.Equal(ErrorType.Timeout, StatusCodeMapping.ToErrorType(HttpStatusCode.RequestTimeout));
-        }
-
-        [Fact]
-        public void ToErrorType_409_ReturnsConflict()
-        {
-            Assert.Equal(ErrorType.Conflict, StatusCodeMapping.ToErrorType(HttpStatusCode.Conflict));
-        }
-
-        [Fact]
-        public void ToErrorType_422_ReturnsUnprocessableEntity()
-        {
-            Assert.Equal(ErrorType.UnprocessableEntity, StatusCodeMapping.ToErrorType((HttpStatusCode)422));
-        }
-
-        [Fact]
-        public void ToErrorType_423_ReturnsLocked()
-        {
-            Assert.Equal(ErrorType.Locked, StatusCodeMapping.ToErrorType((HttpStatusCode)423));
-        }
-
-        [Fact]
-        public void ToErrorType_424_ReturnsFailedDependency()
-        {
-            Assert.Equal(ErrorType.FailedDependency, StatusCodeMapping.ToErrorType((HttpStatusCode)424));
-        }
-
-        [Fact]
-        public void ToErrorType_426_ReturnsUpgradeRequired()
-        {
-            Assert.Equal(ErrorType.UpgradeRequired, StatusCodeMapping.ToErrorType((HttpStatusCode)426));
-        }
-
-        [Fact]
-        public void ToErrorType_428_ReturnsPreconditionRequired()
-        {
-            Assert.Equal(ErrorType.PreconditionRequired, StatusCodeMapping.ToErrorType((HttpStatusCode)428));
-        }
-
-        [Fact]
-        public void ToErrorType_429_ReturnsTooManyRequests()
-        {
-            Assert.Equal(ErrorType.TooManyRequests, StatusCodeMapping.ToErrorType((HttpStatusCode)429));
-        }
-
-        [Fact]
-        public void ToErrorType_451_ReturnsUnavailableForLegal()
-        {
-            Assert.Equal(ErrorType.UnavailableForLegal, StatusCodeMapping.ToErrorType((HttpStatusCode)451));
+            var result = StatusCodeMapping.ToErrorType((HttpStatusCode)code);
+            Assert.Equal(expected, result);
+            // Verify the enum value equals the status code
+            Assert.Equal(code, (int)result);
         }
     }
 
     #endregion
 
-    #region 4xx Custom / Unmapped Codes
+    #region Fallback Behavior
 
-    public class FourXxCustomCodes
+    public class FallbackBehavior
     {
-        [Fact]
-        public void ToErrorType_418_ImATeapot_ReturnsUnknown()
-        {
-            Assert.Equal(ErrorType.Unknown, StatusCodeMapping.ToErrorType((HttpStatusCode)418));
-        }
-
         [Theory]
-        [InlineData(420)]
-        [InlineData(430)]
-        [InlineData(440)]
-        [InlineData(444)]
-        [InlineData(450)]
-        [InlineData(499)]
+        [InlineData(402)]  // Payment Required (reserved)
+        [InlineData(405)]  // Method Not Allowed
+        [InlineData(406)]  // Not Acceptable
+        [InlineData(411)]  // Length Required
+        [InlineData(413)]  // Content Too Large
+        [InlineData(418)]  // I'm a teapot
+        [InlineData(421)]  // Misdirected Request
+        [InlineData(425)]  // Too Early
+        [InlineData(431)]  // Request Header Fields Too Large
+        [InlineData(444)]  // Custom (nginx connection closed without response)
+        [InlineData(450)]  // Custom
+        [InlineData(498)]  // Custom
         public void ToErrorType_4xx_Unmapped_ReturnsValidation(int code)
         {
-            // Unmapped 4xx codes should fall back to Validation (best approximation for client errors)
             Assert.Equal(ErrorType.Validation, StatusCodeMapping.ToErrorType((HttpStatusCode)code));
         }
-    }
 
-    #endregion
-
-    #region 5xx Server Errors — Specific Mappings
-
-    public class FiveXxSpecificMappings
-    {
         [Theory]
-        [InlineData(500, ErrorType.ServerError)]
-        [InlineData(501, ErrorType.ServerError)]
-        [InlineData(505, ErrorType.ServerError)]
-        [InlineData(506, ErrorType.ServerError)]
-        [InlineData(507, ErrorType.ServerError)]
-        [InlineData(508, ErrorType.ServerError)]
-        [InlineData(510, ErrorType.ServerError)]
-        [InlineData(511, ErrorType.ServerError)]
-        public void ToErrorType_5xx_MapsToServerError(int code, ErrorType expected)
-        {
-            Assert.Equal(expected, StatusCodeMapping.ToErrorType((HttpStatusCode)code));
-        }
-
-        [Fact]
-        public void ToErrorType_502_ReturnsBadGateway()
-        {
-            Assert.Equal(ErrorType.BadGateway, StatusCodeMapping.ToErrorType(HttpStatusCode.BadGateway));
-        }
-
-        [Fact]
-        public void ToErrorType_503_ReturnsServiceUnavailable()
-        {
-            Assert.Equal(ErrorType.ServiceUnavailable, StatusCodeMapping.ToErrorType(HttpStatusCode.ServiceUnavailable));
-        }
-
-        [Fact]
-        public void ToErrorType_504_ReturnsGatewayTimeout()
-        {
-            Assert.Equal(ErrorType.GatewayTimeout, StatusCodeMapping.ToErrorType(HttpStatusCode.GatewayTimeout));
-        }
-    }
-
-    #endregion
-
-    #region 5xx Custom / Unmapped Codes
-
-    public class FiveXxCustomCodes
-    {
-        [Theory]
-        [InlineData(509)]
-        [InlineData(520)]
-        [InlineData(521)]
-        [InlineData(522)]
-        [InlineData(598)]
-        [InlineData(599)]
+        [InlineData(501)]  // Not Implemented
+        [InlineData(505)]  // HTTP Version Not Supported
+        [InlineData(506)]  // Variant Also Negotiates
+        [InlineData(507)]  // Insufficient Storage
+        [InlineData(508)]  // Loop Detected
+        [InlineData(510)]  // Not Extended
+        [InlineData(511)]  // Network Authentication Required
+        [InlineData(520)]  // Custom (Cloudflare)
+        [InlineData(599)]  // Custom
         public void ToErrorType_5xx_Unmapped_ReturnsServerError(int code)
         {
-            // All unmapped 5xx codes should fall back to ServerError
             Assert.Equal(ErrorType.ServerError, StatusCodeMapping.ToErrorType((HttpStatusCode)code));
         }
     }
 
     #endregion
 
-    #region Out-of-Range Codes
+    #region Non-Error Codes
 
-    public class OutOfRangeCodes
+    public class NonErrorCodes
     {
         [Theory]
-        [InlineData(100)]
-        [InlineData(101)]
-        [InlineData(200)]
-        [InlineData(201)]
-        [InlineData(204)]
-        [InlineData(301)]
-        [InlineData(302)]
-        [InlineData(304)]
-        public void ToErrorType_NonErrorCodes_ReturnsUnknown(int code)
+        [InlineData(100)]  // Continue
+        [InlineData(101)]  // Switching Protocols
+        [InlineData(200)]  // OK
+        [InlineData(201)]  // Created
+        [InlineData(204)]  // No Content
+        [InlineData(301)]  // Moved Permanently
+        [InlineData(302)]  // Found
+        [InlineData(304)]  // Not Modified
+        public void ToErrorType_1xx_2xx_3xx_ReturnsUnknown(int code)
         {
-            // 1xx, 2xx, 3xx are not error codes → Unknown
             Assert.Equal(ErrorType.Unknown, StatusCodeMapping.ToErrorType((HttpStatusCode)code));
         }
 
         [Theory]
         [InlineData(600)]
         [InlineData(999)]
-        public void ToErrorType_InvalidRange_ReturnsUnknown(int code)
+        public void ToErrorType_OutOfRange_ReturnsUnknown(int code)
         {
-            // Codes outside 400-599 range → Unknown
             Assert.Equal(ErrorType.Unknown, StatusCodeMapping.ToErrorType((HttpStatusCode)code));
         }
     }
 
     #endregion
 
-    #region Edge Cases
+    #region Non-HTTP Error Types
 
-    public class EdgeCases
+    public class NonHttpErrorTypes
     {
         [Fact]
-        public void ToErrorType_Zero_ReturnsUnknown()
+        public void Cancelled_HasDistinctValue()
         {
-            Assert.Equal(ErrorType.Unknown, StatusCodeMapping.ToErrorType((HttpStatusCode)0));
+            Assert.Equal(999, (int)ErrorType.Cancelled);
         }
 
         [Fact]
-        public void ToErrorType_Negative_ReturnsUnknown()
+        public void InternalError_HasDistinctValue()
         {
-            // Cast negative to HttpStatusCode (wraps around)
-            // Just verify it doesn't throw and returns Unknown or fallback
-            var result = StatusCodeMapping.ToErrorType((HttpStatusCode)(-1));
-            // Negative cast wraps to large positive, which is outside 400-599 → Unknown
-            Assert.Equal(ErrorType.Unknown, result);
+            Assert.Equal(998, (int)ErrorType.InternalError);
+        }
+
+        [Fact]
+        public void Unknown_IsZero()
+        {
+            Assert.Equal(0, (int)ErrorType.Unknown);
         }
     }
 

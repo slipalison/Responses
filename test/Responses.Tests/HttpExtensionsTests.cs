@@ -225,6 +225,8 @@ public class HttpExtensionsTests
         {
             var actual = StatusCodeMapping.ToErrorType((System.Net.HttpStatusCode)statusCode);
             Assert.Equal(expectedType, actual);
+            // Verify enum value equals status code
+            Assert.Equal(statusCode, (int)actual);
         }
     }
 
