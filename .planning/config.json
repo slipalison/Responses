@@ -1,0 +1,27 @@
+{
+  "version": "1.0.0",
+  "projectName": "Responses",
+  "mode": "interactive",
+  "depth": "comprehensive",
+  "parallelization": true,
+  "tdd": {
+    "required": true,
+    "method": "red-green-refactor",
+    "minCoverage": 90
+  },
+  "techStack": {
+    "targetFramework": "net10.0",
+    "jsonLibrary": "System.Text.Json",
+    "httpLibrary": "Flurl 4.x",
+    "testFramework": "xUnit"
+  },
+  "principles": [
+    "Righting Software - Juval Löwy (todos os princípios)",
+    "SRP rigoroso",
+    "Interfaces coesas e pequenas",
+    "Baixo acoplamento, alta coesão",
+    "Zero alocação desnecessária",
+    "Structs imutáveis + Span/Memory/ArrayPool",
+    "TDD obrigatório"
+  ]
+}
