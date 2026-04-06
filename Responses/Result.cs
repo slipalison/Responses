@@ -37,11 +37,13 @@ public readonly struct Result
     /// <summary>
     /// Gets a value indicating whether the operation succeeded.
     /// </summary>
+    [JsonPropertyName("isSuccessful")]
     public bool IsSuccess { get; }
 
     /// <summary>
     /// Gets a value indicating whether the operation failed.
     /// </summary>
+    [JsonPropertyName("isFailed")]
     public bool IsFailed => !IsSuccess;
 
     internal Result(bool isSuccess, Error? error)
@@ -293,11 +295,13 @@ public readonly struct Result<T>
     /// <summary>
     /// Gets a value indicating whether the operation succeeded.
     /// </summary>
+    [JsonPropertyName("isSuccessful")]
     public bool IsSuccess { get; }
 
     /// <summary>
     /// Gets a value indicating whether the operation failed.
     /// </summary>
+    [JsonPropertyName("isFailed")]
     public bool IsFailed => !IsSuccess;
 
     /// <summary>
@@ -514,11 +518,13 @@ public readonly struct Result<TValue, TError> where TError : IError
     /// <summary>
     /// Gets a value indicating whether the operation succeeded.
     /// </summary>
+    [JsonPropertyName("isSuccessful")]
     public bool IsSuccess { get; }
 
     /// <summary>
     /// Gets a value indicating whether the operation failed.
     /// </summary>
+    [JsonPropertyName("isFailed")]
     public bool IsFailed => !IsSuccess;
 
     /// <summary>

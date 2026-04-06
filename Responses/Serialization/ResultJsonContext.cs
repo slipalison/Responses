@@ -9,6 +9,7 @@ namespace Responses.Serialization;
 /// </summary>
 [JsonSourceGenerationOptions(
     WriteIndented = false,
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     GenerationMode = JsonSourceGenerationMode.Default)]
 [JsonSerializable(typeof(Result))]
 [JsonSerializable(typeof(Result<int>))]
