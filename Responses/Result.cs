@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text.Json.Serialization;
 
 namespace Responses;
 
@@ -17,6 +18,7 @@ public readonly struct Result
     /// <summary>
     /// Gets the error details when the result represents a failure.
     /// </summary>
+    [JsonIgnore]
     public Error Error
     {
         get
@@ -272,6 +274,7 @@ public readonly struct Result<T>
     /// <summary>
     /// Gets the error details when the result represents a failure.
     /// </summary>
+    [JsonIgnore]
     public Error Error
     {
         get
@@ -300,6 +303,7 @@ public readonly struct Result<T>
     /// <summary>
     /// Gets the result value when the operation succeeded.
     /// </summary>
+    [JsonIgnore]
     public T Value
     {
         get
@@ -487,6 +491,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     /// <summary>
     /// Gets the error details when the result represents a failure.
     /// </summary>
+    [JsonIgnore]
     public TError Error
     {
         get
@@ -513,6 +518,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     /// <summary>
     /// Gets the result value when the operation succeeded.
     /// </summary>
+    [JsonIgnore]
     public TValue Value
     {
         get => !IsSuccess ? throw new InvalidOperationException(ResultMessages.ValueToFailure) : _value!;
