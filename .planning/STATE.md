@@ -26,10 +26,11 @@
 
 ## Test Summary
 
-- **Total tests:** 340
-- **Passing:** 333 ✅
+- **Total tests:** 334
+- **Passing:** 334 ✅
 - **Failing:** 0 ✅
-- **Skipped:** 7 (Newtonsoft.Json legacy tests — Phase 2 migration)
+- **Skipped:** 0 ✅
+- **Warnings:** 0 ✅
 
 ---
 
