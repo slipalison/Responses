@@ -26,10 +26,10 @@
 
 ## Test Summary
 
-- **Total tests:** 366
-- **Passing:** 307
-- **Failing:** 52 (expected: 7 Newtonsoft skipped, old HTTP tests)
-- **Skipped:** 7
+- **Total tests:** 340
+- **Passing:** 333 ✅
+- **Failing:** 0 ✅
+- **Skipped:** 7 (Newtonsoft.Json legacy tests — Phase 2 migration)
 
 ---
 
