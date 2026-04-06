@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -11,6 +12,7 @@ namespace Responses;
 public readonly struct Result
 {
     private readonly Error? _error;
+    private readonly ErrorCollection _errors;
 
     /// <summary>
     /// Gets the error details when the result represents a failure.
@@ -26,6 +28,11 @@ public readonly struct Result
     }
 
     /// <summary>
+    /// Gets a collection of all errors when the result represents a failure.
+    /// </summary>
+    public ErrorCollection Errors => IsSuccess ? ErrorCollection.Empty : _errors;
+
+    /// <summary>
     /// Gets a value indicating whether the operation succeeded.
     /// </summary>
     public bool IsSuccess { get; }
@@ -39,6 +46,14 @@ public readonly struct Result
     {
         IsSuccess = isSuccess;
         _error = error;
+        _errors = error.HasValue ? new ErrorCollection(error.Value) : ErrorCollection.Empty;
+    }
+
+    internal Result(bool isSuccess, ErrorCollection errors)
+    {
+        IsSuccess = isSuccess;
+        _error = errors.Count > 0 ? (Error)errors[0] : default;
+        _errors = errors;
     }
 
     /// <inheritdoc />
@@ -48,73 +63,111 @@ public readonly struct Result
     /// Creates a successful result.
     /// </summary>
     [DebuggerStepThrough]
-    public static Result Ok() => new(true, default);
+    public static Result Ok() => new(isSuccess: true, error: default);
 
     /// <summary>
     /// Creates a failed result with the specified error code and message.
     /// </summary>
     [DebuggerStepThrough]
-    public static Result Fail(string code, string message) => new(false, new Error(code, message));
+    public static Result Fail(string code, string message) => new(isSuccess: false, error: new Error(code, message));
 
     /// <summary>
     /// Creates a failed result from a named tuple.
     /// </summary>
     [DebuggerStepThrough]
-    public static Result Fail((string Code, string Message) error) => new(false, new Error(error.Code, error.Message));
+    public static Result Fail((string Code, string Message) error) => new(isSuccess: false, error: new Error(error.Code, error.Message));
 
     /// <summary>
     /// Creates a failed result from a tuple.
     /// </summary>
     [DebuggerStepThrough]
-    public static Result Fail(Tuple<string, string> error) => new(false, new Error(error.Item1, error.Item2));
+    public static Result Fail(Tuple<string, string> error) => new(isSuccess: false, error: new Error(error.Item1, error.Item2));
 
     /// <summary>
     /// Creates a failed result with the specified error.
     /// </summary>
     [DebuggerStepThrough]
-    public static Result Fail(Error error) => new(false, error);
+    public static Result Fail(Error error) => new(isSuccess: false, error: error);
+
+    /// <summary>
+    /// Creates a failed result with the specified errors.
+    /// </summary>
+    [DebuggerStepThrough]
+    public static Result Fail(IEnumerable<IError> errors) => new(isSuccess: false, errors: new ErrorCollection(errors));
+
+    /// <summary>
+    /// Creates a failed result with the specified errors.
+    /// </summary>
+    [DebuggerStepThrough]
+    public static Result Fail(params IError[] errors) => new(isSuccess: false, errors: new ErrorCollection(errors));
 
     /// <summary>
     /// Creates a successful result with the specified value.
     /// </summary>
     [DebuggerStepThrough]
-    public static Result<T> Ok<T>(T value) => new(true, default, value);
+    public static Result<T> Ok<T>(T value) => new(isSuccess: true, error: default, value: value);
 
     /// <summary>
     /// Creates a failed result with the specified error code and message.
     /// </summary>
     [DebuggerStepThrough]
-    public static Result<T> Fail<T>(string code, string message) => new(false, new Error(code, message), default!);
+    public static Result<T> Fail<T>(string code, string message) => new(isSuccess: false, error: new Error(code, message), value: default!);
 
     /// <summary>
     /// Creates a failed result from a named tuple.
     /// </summary>
     [DebuggerStepThrough]
-    public static Result<T> Fail<T>((string Code, string Message) error) => new(false, new Error(error.Code, error.Message), default!);
+    public static Result<T> Fail<T>((string Code, string Message) error) => new(isSuccess: false, error: new Error(error.Code, error.Message), value: default!);
 
     /// <summary>
     /// Creates a failed result from a tuple.
     /// </summary>
     [DebuggerStepThrough]
-    public static Result<T> Fail<T>(Tuple<string, string> error) => new(false, new Error(error.Item1, error.Item2), default!);
+    public static Result<T> Fail<T>(Tuple<string, string> error) => new(isSuccess: false, error: new Error(error.Item1, error.Item2), value: default!);
 
     /// <summary>
     /// Creates a failed result with the specified error.
     /// </summary>
     [DebuggerStepThrough]
-    public static Result<T> Fail<T>(Error error) => new(false, error, default!);
+    public static Result<T> Fail<T>(Error error) => new(isSuccess: false, error: error, value: default!);
+
+    /// <summary>
+    /// Creates a failed result with the specified errors.
+    /// </summary>
+    [DebuggerStepThrough]
+    public static Result<T> Fail<T>(IEnumerable<IError> errors) => new(isSuccess: false, errors: new ErrorCollection(errors), value: default!);
+
+    /// <summary>
+    /// Creates a failed result with the specified errors.
+    /// </summary>
+    [DebuggerStepThrough]
+    public static Result<T> Fail<T>(params IError[] errors) => new(isSuccess: false, errors: new ErrorCollection(errors), value: default!);
 
     /// <summary>
     /// Creates a successful result with typed error.
     /// </summary>
     [DebuggerStepThrough]
-    public static Result<TValue, TError> Ok<TValue, TError>(TValue value) where TError : IError => new(true, default!, value);
+    public static Result<TValue, TError> Ok<TValue, TError>(TValue value) where TError : IError => new(isSuccess: true, error: default!, value: value);
 
     /// <summary>
     /// Creates a failed result with typed error.
     /// </summary>
     [DebuggerStepThrough]
-    public static Result<TValue, TError> Fail<TValue, TError>(TError error) where TError : IError => new(false, error, default!);
+    public static Result<TValue, TError> Fail<TValue, TError>(TError error) where TError : IError => new(isSuccess: false, error: error, value: default!);
+
+    /// <summary>
+    /// Creates a failed result with the specified errors.
+    /// </summary>
+    [DebuggerStepThrough]
+    public static Result<TValue, TError> Fail<TValue, TError>(IEnumerable<IError> errors) where TError : IError =>
+        new(isSuccess: false, errors: new ErrorCollection(errors), value: default!);
+
+    /// <summary>
+    /// Creates a failed result with the specified errors.
+    /// </summary>
+    [DebuggerStepThrough]
+    public static Result<TValue, TError> Fail<TValue, TError>(params IError[] errors) where TError : IError =>
+        new(isSuccess: false, errors: new ErrorCollection(errors), value: default!);
 
     /// <summary>
     /// Creates a successful result if the condition is true, otherwise a failed result.
@@ -214,6 +267,7 @@ public readonly struct Result<T>
 {
     private readonly Error? _error;
     private readonly T? _value;
+    private readonly ErrorCollection _errors;
 
     /// <summary>
     /// Gets the error details when the result represents a failure.
@@ -227,6 +281,11 @@ public readonly struct Result<T>
             return _error!.Value;
         }
     }
+
+    /// <summary>
+    /// Gets a collection of all errors when the result represents a failure.
+    /// </summary>
+    public ErrorCollection Errors => IsSuccess ? ErrorCollection.Empty : _errors;
 
     /// <summary>
     /// Gets a value indicating whether the operation succeeded.
@@ -260,6 +319,15 @@ public readonly struct Result<T>
     {
         IsSuccess = isSuccess;
         _error = error;
+        _value = value;
+        _errors = error.HasValue ? new ErrorCollection(error.Value) : ErrorCollection.Empty;
+    }
+
+    internal Result(bool isSuccess, ErrorCollection errors, T? value)
+    {
+        IsSuccess = isSuccess;
+        _error = errors.Count > 0 ? (Error)errors[0] : default;
+        _errors = errors;
         _value = value;
     }
 
@@ -397,12 +465,12 @@ public readonly struct Result<T>
     /// </summary>
     public readonly Result<TResult> SelectMany<TIntermediate, TResult>(Func<T, Result<TIntermediate>> collectionSelector, Func<T, TIntermediate, TResult> resultSelector)
     {
-        if (!IsSuccess) return new Result<TResult>(false, _error, default);
+        if (!IsSuccess) return new Result<TResult>(isSuccess: false, error: _error, value: default);
 
         var intermediate = collectionSelector(_value!);
-        if (!intermediate.IsSuccess) return new Result<TResult>(false, intermediate._error, default);
+        if (!intermediate.IsSuccess) return new Result<TResult>(isSuccess: false, error: intermediate._error, value: default);
 
-        return new Result<TResult>(true, default, resultSelector(_value!, intermediate.Value));
+        return new Result<TResult>(isSuccess: true, error: default, value: resultSelector(_value!, intermediate.Value));
     }
 }
 
@@ -414,6 +482,7 @@ public readonly struct Result<TValue, TError> where TError : IError
 {
     private readonly TError? _error;
     private readonly TValue? _value;
+    private readonly ErrorCollection _errors;
 
     /// <summary>
     /// Gets the error details when the result represents a failure.
@@ -425,6 +494,11 @@ public readonly struct Result<TValue, TError> where TError : IError
             return !IsSuccess ? _error! : throw new InvalidOperationException(ResultMessages.ErrorMessageToSuccess);
         }
     }
+
+    /// <summary>
+    /// Gets a collection of all errors when the result represents a failure.
+    /// </summary>
+    public ErrorCollection Errors => IsSuccess ? ErrorCollection.Empty : _errors;
 
     /// <summary>
     /// Gets a value indicating whether the operation succeeded.
@@ -453,6 +527,15 @@ public readonly struct Result<TValue, TError> where TError : IError
     {
         IsSuccess = isSuccess;
         _error = error;
+        _value = value;
+        _errors = error != null ? new ErrorCollection(error) : ErrorCollection.Empty;
+    }
+
+    internal Result(bool isSuccess, ErrorCollection errors, TValue? value)
+    {
+        IsSuccess = isSuccess;
+        _error = errors.Count > 0 ? (TError)errors[0] : default;
+        _errors = errors;
         _value = value;
     }
 

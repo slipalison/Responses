@@ -5,20 +5,27 @@ using System.Runtime.InteropServices;
 namespace Responses;
 
 /// <summary>
-/// Represents an error with code, message, and contextual metadata.
+/// Represents an error with code, message, type, and contextual metadata.
 /// </summary>
 [StructLayout(LayoutKind.Auto)]
 public readonly struct Error : IError
 {
+    private static readonly IReadOnlyDictionary<string, string> _emptyMetadata = new Dictionary<string, string>();
+
     /// <summary>
-    /// Gets the error code.
+    /// Gets the error code (machine-readable identifier).
     /// </summary>
     public string Code { get; }
 
     /// <summary>
-    /// Gets the error message.
+    /// Gets the error message (human-readable description).
     /// </summary>
     public string Message { get; }
+
+    /// <summary>
+    /// Gets the error type for categorization and HTTP status mapping.
+    /// </summary>
+    public ErrorType Type { get; }
 
     /// <summary>
     /// Gets the layer where the error originated.
@@ -31,36 +38,36 @@ public readonly struct Error : IError
     public string ApplicationName { get; }
 
     /// <summary>
-    /// Gets additional error details.
+    /// Gets additional metadata key-value pairs.
     /// </summary>
-    public IEnumerable<KeyValuePair<string, string>> Errors { get; }
+    public IReadOnlyDictionary<string, string> Metadata { get; }
 
     /// <summary>
     /// Creates a new error with the specified code and message.
     /// </summary>
-    public Error(string code, string message, IEnumerable<KeyValuePair<string, string>>? errors = null)
+    public Error(string code, string message, ErrorType type = ErrorType.Unknown, IReadOnlyDictionary<string, string>? metadata = null)
     {
         ValidateCtor(code, message);
-
         Code = code;
         Message = message;
+        Type = type;
         Layer = ResultContext.Layer;
         ApplicationName = ResultContext.ApplicationName;
-        Errors = errors ?? Array.Empty<KeyValuePair<string, string>>();
+        Metadata = metadata ?? _emptyMetadata;
     }
 
     /// <summary>
     /// Creates a new error from a named tuple.
     /// </summary>
-    public Error((string code, string message) error, IEnumerable<KeyValuePair<string, string>>? errors = null)
+    public Error((string code, string message) error, ErrorType type = ErrorType.Unknown, IReadOnlyDictionary<string, string>? metadata = null)
     {
         ValidateCtor(error.code, error.message);
-
         Code = error.code;
         Message = error.message;
+        Type = type;
         Layer = ResultContext.Layer;
         ApplicationName = ResultContext.ApplicationName;
-        Errors = errors ?? Array.Empty<KeyValuePair<string, string>>();
+        Metadata = metadata ?? _emptyMetadata;
     }
 
     /// <summary>
@@ -70,10 +77,59 @@ public readonly struct Error : IError
     {
         Code = string.Empty;
         Message = string.Empty;
+        Type = ErrorType.Unknown;
         Layer = ResultContext.Layer;
         ApplicationName = ResultContext.ApplicationName;
-        Errors = Array.Empty<KeyValuePair<string, string>>();
+        Metadata = _emptyMetadata;
     }
+
+    /// <summary>
+    /// Creates a validation error.
+    /// </summary>
+    public static Error Validation(string code, string message, IReadOnlyDictionary<string, string>? metadata = null) =>
+        new(code, message, ErrorType.Validation, metadata);
+
+    /// <summary>
+    /// Creates a not found error.
+    /// </summary>
+    public static Error NotFound(string code, string message, IReadOnlyDictionary<string, string>? metadata = null) =>
+        new(code, message, ErrorType.NotFound, metadata);
+
+    /// <summary>
+    /// Creates a conflict error.
+    /// </summary>
+    public static Error Conflict(string code, string message, IReadOnlyDictionary<string, string>? metadata = null) =>
+        new(code, message, ErrorType.Conflict, metadata);
+
+    /// <summary>
+    /// Creates an unauthorized error.
+    /// </summary>
+    public static Error Unauthorized(string code, string message, IReadOnlyDictionary<string, string>? metadata = null) =>
+        new(code, message, ErrorType.Unauthorized, metadata);
+
+    /// <summary>
+    /// Creates a forbidden error.
+    /// </summary>
+    public static Error Forbidden(string code, string message, IReadOnlyDictionary<string, string>? metadata = null) =>
+        new(code, message, ErrorType.Forbidden, metadata);
+
+    /// <summary>
+    /// Creates a server error.
+    /// </summary>
+    public static Error Server(string code, string message, IReadOnlyDictionary<string, string>? metadata = null) =>
+        new(code, message, ErrorType.ServerError, metadata);
+
+    /// <summary>
+    /// Creates a timeout error.
+    /// </summary>
+    public static Error Timeout(string code, string message, IReadOnlyDictionary<string, string>? metadata = null) =>
+        new(code, message, ErrorType.Timeout, metadata);
+
+    /// <summary>
+    /// Creates a cancelled error.
+    /// </summary>
+    public static Error Cancelled(string code, string message, IReadOnlyDictionary<string, string>? metadata = null) =>
+        new(code, message, ErrorType.Cancelled, metadata);
 
     private static void ValidateCtor(string code, string message)
     {
@@ -85,5 +141,5 @@ public readonly struct Error : IError
     }
 
     /// <inheritdoc />
-    public override string ToString() => $"[{Layer}] {ApplicationName} - {Code}: {Message}";
+    public override string ToString() => $"[{Type}] [{Layer}] {ApplicationName} - {Code}: {Message}";
 }
