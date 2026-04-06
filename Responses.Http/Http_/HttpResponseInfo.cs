@@ -34,7 +34,7 @@ public readonly struct HttpResponseInfo
     public string ReasonPhrase { get; }
 
     /// <summary>
-    /// Creates a new <see cref="HttpResponseInfo"/> from an <see cref="HttpResponseMessage"/>.
+    /// Creates a new <see cref="HttpResponseInfo"/>.
     /// </summary>
     public HttpResponseInfo(System.Net.HttpStatusCode statusCode, string reasonPhrase, IReadOnlyDictionary<string, IEnumerable<string>> headers, string rawBody)
     {
@@ -42,21 +42,6 @@ public readonly struct HttpResponseInfo
         ReasonPhrase = reasonPhrase;
         Headers = headers;
         RawBody = rawBody;
-    }
-
-    internal static HttpResponseInfo FromResponse(HttpResponseMessage response, string rawBody)
-    {
-        var headers = new Dictionary<string, IEnumerable<string>>();
-        foreach (var header in response.Headers)
-            headers[header.Key] = header.Value;
-        foreach (var header in response.Content.Headers)
-            headers[header.Key] = header.Value;
-
-        return new HttpResponseInfo(
-            response.StatusCode,
-            response.ReasonPhrase ?? string.Empty,
-            headers,
-            rawBody);
     }
 }
 

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Flurl;
@@ -177,6 +179,30 @@ public class HttpExtensionsTests
             Assert.Equal("Error", result.Value.Title);
             Assert.Equal(500, result.Value.Status);
         }
+
+        [Fact]
+        public void ProblemDetails_CreatesWithAllProperties()
+        {
+            var pd = new ProblemDetails(
+                "https://example.com/not-found",
+                "Resource Not Found",
+                404,
+                "The user does not exist",
+                "/api/users/123");
+
+            Assert.Equal("https://example.com/not-found", pd.Type);
+            Assert.Equal("Resource Not Found", pd.Title);
+            Assert.Equal(404, pd.Status);
+            Assert.Equal("The user does not exist", pd.Detail);
+            Assert.Equal("/api/users/123", pd.Instance);
+        }
+
+        [Fact]
+        public void ProblemDetails_WithNullStatus()
+        {
+            var pd = new ProblemDetails("https://example.com/err", "Error", null, "details", "/instance");
+            Assert.Null(pd.Status);
+        }
     }
 
     #endregion
@@ -209,14 +235,67 @@ public class HttpExtensionsTests
     public class HttpResponseInfoTests
     {
         [Fact]
-        public async Task ReceiveResult_CapturesHttpResponseInfo_WhenExtended()
+        public void HttpResponseInfo_CreatesWithAllProperties()
         {
-            using var test = new HttpTest();
-            test.RespondWithJson(42, 200);
+            var headers = new Dictionary<string, IEnumerable<string>>
+            {
+                { "Content-Type", new[] { "application/json" } }
+            };
+            var info = new HttpResponseInfo(
+                System.Net.HttpStatusCode.OK,
+                "OK",
+                headers,
+            "{\"key\":\"value\"}");
 
-            var result = await "http://test".GetAsync().ReceiveResult<int>();
-            // Basic verification — full HttpResponseInfo integration requires Result metadata storage
-            Assert.True(result.IsSuccess);
+            Assert.Equal(System.Net.HttpStatusCode.OK, info.StatusCode);
+            Assert.Equal("OK", info.ReasonPhrase);
+            Assert.Equal("application/json", info.Headers["Content-Type"].First());
+            Assert.Equal("{\"key\":\"value\"}", info.RawBody);
+        }
+
+        [Fact]
+        public void HttpResponseInfo_EmptyHeaders_IsValid()
+        {
+            var info = new HttpResponseInfo(
+                System.Net.HttpStatusCode.NoContent,
+                "",
+                new Dictionary<string, IEnumerable<string>>(),
+            "");
+
+            Assert.Equal(System.Net.HttpStatusCode.NoContent, info.StatusCode);
+            Assert.Empty(info.Headers);
+            Assert.Empty(info.RawBody);
+        }
+    }
+
+    #endregion
+
+    #region ResultHttpExtensions Tests
+
+    public class ResultHttpExtensionsTests
+    {
+        [Fact]
+        public void WithHttpInfo_ReturnsResultAndDefaultHttpInfo()
+        {
+            var result = Result.Ok(42);
+            var (resultValue, httpInfo) = result.WithHttpInfo();
+
+            Assert.True(resultValue.IsSuccess);
+            Assert.Equal(42, resultValue.Value);
+            // Note: HttpResponseInfo is default since HTTP metadata capture
+            // is not yet integrated into Result types. This is a placeholder
+            // for future implementation (see R32 in roadmap).
+            Assert.Equal(default, httpInfo.StatusCode);
+        }
+
+        [Fact]
+        public void WithHttpInfo_WorksWithFailedResult()
+        {
+            var result = Result.Fail<int>("ERR", "msg");
+            var (resultValue, httpInfo) = result.WithHttpInfo();
+
+            Assert.True(resultValue.IsFailed);
+            Assert.Equal(default, httpInfo.StatusCode);
         }
     }
 
