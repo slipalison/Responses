@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Text.Json.Serialization;
 
 namespace Responses;
 
@@ -15,31 +16,37 @@ public readonly struct Error : IError
     /// <summary>
     /// Gets the error code (machine-readable identifier).
     /// </summary>
+    [JsonPropertyName("code")]
     public string Code { get; }
 
     /// <summary>
     /// Gets the error message (human-readable description).
     /// </summary>
+    [JsonPropertyName("message")]
     public string Message { get; }
 
     /// <summary>
     /// Gets the error type for categorization and HTTP status mapping.
     /// </summary>
+    [JsonPropertyName("type")]
     public ErrorType Type { get; }
 
     /// <summary>
     /// Gets the layer where the error originated.
     /// </summary>
+    [JsonPropertyName("layer")]
     public string Layer { get; }
 
     /// <summary>
     /// Gets the application name.
     /// </summary>
+    [JsonPropertyName("applicationName")]
     public string ApplicationName { get; }
 
     /// <summary>
     /// Gets additional metadata key-value pairs.
     /// </summary>
+    [JsonPropertyName("metadata")]
     public IReadOnlyDictionary<string, string> Metadata { get; }
 
     /// <summary>

@@ -9,7 +9,6 @@ namespace Responses.Serialization;
 /// </summary>
 [JsonSourceGenerationOptions(
     WriteIndented = false,
-    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     GenerationMode = JsonSourceGenerationMode.Default)]
 [JsonSerializable(typeof(Result))]
 [JsonSerializable(typeof(Result<int>))]
@@ -35,6 +34,5 @@ public partial class ResultJsonContext : JsonSerializerContext
     public static readonly JsonSerializerOptions DefaultOptions = new()
     {
         TypeInfoResolver = Default,
-        Converters = { new ErrorJsonConverter(), new ErrorCollectionJsonConverter() },
     };
 }
