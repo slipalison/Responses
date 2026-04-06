@@ -134,9 +134,45 @@ public readonly struct Error : IError
 
     /// <summary>
     /// Creates a cancelled error.
+    /// Corresponds to HTTP cancellation (no direct status code).
     /// </summary>
     public static Error Cancelled(string code, string message, IReadOnlyDictionary<string, string>? metadata = null) =>
         new(code, message, ErrorType.Cancelled, metadata);
+
+    /// <summary>
+    /// Creates a too many requests error.
+    /// Corresponds to HTTP 429 Too Many Requests (RFC 6585).
+    /// </summary>
+    public static Error TooManyRequests(string code, string message, IReadOnlyDictionary<string, string>? metadata = null) =>
+        new(code, message, ErrorType.TooManyRequests, metadata);
+
+    /// <summary>
+    /// Creates an unprocessable entity error.
+    /// Corresponds to HTTP 422 Unprocessable Content (RFC 9110).
+    /// </summary>
+    public static Error UnprocessableEntity(string code, string message, IReadOnlyDictionary<string, string>? metadata = null) =>
+        new(code, message, ErrorType.UnprocessableEntity, metadata);
+
+    /// <summary>
+    /// Creates a bad gateway error.
+    /// Corresponds to HTTP 502 Bad Gateway.
+    /// </summary>
+    public static Error BadGateway(string code, string message, IReadOnlyDictionary<string, string>? metadata = null) =>
+        new(code, message, ErrorType.BadGateway, metadata);
+
+    /// <summary>
+    /// Creates a service unavailable error.
+    /// Corresponds to HTTP 503 Service Unavailable.
+    /// </summary>
+    public static Error ServiceUnavailable(string code, string message, IReadOnlyDictionary<string, string>? metadata = null) =>
+        new(code, message, ErrorType.ServiceUnavailable, metadata);
+
+    /// <summary>
+    /// Creates a gateway timeout error.
+    /// Corresponds to HTTP 504 Gateway Timeout.
+    /// </summary>
+    public static Error GatewayTimeout(string code, string message, IReadOnlyDictionary<string, string>? metadata = null) =>
+        new(code, message, ErrorType.GatewayTimeout, metadata);
 
     private static void ValidateCtor(string code, string message)
     {
