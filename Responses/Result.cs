@@ -347,6 +347,7 @@ public readonly struct Result<T>
     /// </summary>
     public readonly Result<TOut> Map<TOut>(Func<T, TOut> func)
     {
+        ArgumentNullException.ThrowIfNull(func);
         return IsSuccess ? Result.Ok(func(_value!)) : new Result<TOut>(false, _error, default);
     }
 
@@ -355,6 +356,7 @@ public readonly struct Result<T>
     /// </summary>
     public readonly Result<TOut> Bind<TOut>(Func<T, Result<TOut>> func)
     {
+        ArgumentNullException.ThrowIfNull(func);
         return IsSuccess ? func(_value!) : new Result<TOut>(false, _error, default);
     }
 
@@ -363,6 +365,7 @@ public readonly struct Result<T>
     /// </summary>
     public readonly Result<T> Tap(Action<T> action)
     {
+        ArgumentNullException.ThrowIfNull(action);
         if (IsSuccess) action(_value!);
         return this;
     }
@@ -372,6 +375,7 @@ public readonly struct Result<T>
     /// </summary>
     public readonly Result<T> Ensure(Predicate<T> predicate, Error error)
     {
+        ArgumentNullException.ThrowIfNull(predicate);
         if (!IsSuccess) return this;
         if (!predicate(_value!)) return new Result<T>(false, error, default);
         return this;
@@ -382,6 +386,8 @@ public readonly struct Result<T>
     /// </summary>
     public readonly TResult Match<TResult>(Func<T, TResult> onSuccess, Func<Error, TResult> onFailure)
     {
+        ArgumentNullException.ThrowIfNull(onSuccess);
+        ArgumentNullException.ThrowIfNull(onFailure);
         return IsSuccess ? onSuccess(_value!) : onFailure(_error!.Value);
     }
 
