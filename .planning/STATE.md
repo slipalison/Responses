@@ -7,8 +7,8 @@
 
 ## Current Phase
 
-**State:** `phase_1_complete`
-**Active Phase:** Phase 1: Core Foundation (complete)
+**State:** `phase_2_partial`
+**Active Phase:** Phase 2: Error Model + Serialization (partial — serialization needs refactor)
 **Last Updated:** 6 de abril de 2026
 
 ---
@@ -16,8 +16,9 @@
 ## Project State
 
 ```
-[x] Phase 1: Core Foundation — Complete (216/250 tests passing, 34 expected failures for Phase 2+3)
-[ ] Phase 2: Error Model + Serialization — Not started
+[x] Phase 1: Core Foundation — Complete
+[x] Phase 2 Plan 01: Error Model — Complete (35 tests passing)
+[~] Phase 2 Plan 02: STJ Serialization — Partial (infrastructure done, converters need fix)
 [ ] Phase 3: HTTP Extensions (Flurl) — Not started
 [ ] Phase 4: Performance + Quality — Not started
 [ ] Phase 5: Testing + Polish — Not started
@@ -25,30 +26,27 @@
 
 ---
 
-## Phase 1 Summary
+## Phase 2 Summary
 
-**Plans executed:** 4 (all completed in 2 commits)
-**New tests added:** 131 (FunctionalComposition, AsyncComposition, PatternMatching, LinqSupport, StringRepresentation)
-**Total tests:** 250 (216 passing, 34 expected failures for Phase 2/3 scope)
+**Error Model (Plan 01):** ✅ Complete
+- ErrorType enum (10 values), Error struct with Type/Metadata, factory methods
+- ErrorCollection as IReadOnlyList<IError>
+- Result.Errors property on all 3 types
+- Fail(IEnumerable<IError>) factories
+- 35 tests passing
 
-**Delivered:**
-- `Result`, `Result<T>`, `Result<TValue, TError>` as `readonly struct` with `[StructLayout(LayoutKind.Auto)]`
-- `IsFailed` property on all types
-- `ValueOrDefault` for safe access without throw
-- Map, Bind, Tap, Ensure (sync + async)
-- Match, Else, MatchAsync, ElseAsync (pattern matching)
-- SelectMany, Select (LINQ query syntax)
-- OkIf, FailIf (conditional factories)
-- ToString override for debugging
-- .NET 10 target, nullable reference types, XML docs
-- Flurl.Http 4.0.2 migration, System.Text.Json (Newtonsoft removed)
-- Thread-safe AssemblyContext (no mutable static Func)
+**STJ Serialization (Plan 02):** ⚠️ Partial
+- ErrorJsonConverter, ResultJsonConverter, ResultJsonContext source generator created
+- JsonIgnore added to Error and Value properties
+- Custom converters have reader state issues — "read too much or not enough" error
+- Round-trip not working yet
+- Preferred approach: source generator with JsonIgnore + safe properties (IsSuccess, ValueOrDefault, Errors)
 
 **Commits:**
-- `9120b69` — feat: migrate to .NET 10 readonly structs with immutable design
-- `042e36f` — docs: add plan 01 summary
-- `9d88293` — test: add dedicated test files for composition, async, LINQ, factories
-- `f3170f0` — docs: add plan 02, 03, 04 summaries
+- `2f4fe92` — feat(02-error-model): redesign Error with ErrorType, Metadata, and multi-error support
+- `9e097d7` — docs(02-error-model): add plan 01 summary
+- `530c8ac` — feat(02-serialization): add STJ serialization infrastructure (partial)
+- `0dd34d6` — docs(02-serialization): add plan 02 summary (partial)
 
 ---
 
