@@ -76,12 +76,16 @@ jobs:
       - name: Build
         run: dotnet build Responses.sln -c Release
 
+      # CoverletOutputFormat lists two formats separated by a comma. The comma is
+      # escaped as %2C (MSBuild property escaping) so it survives shell/argument
+      # parsing on any runner; a literal quoted "opencover,lcov" breaks under
+      # PowerShell (MSB1006: Property is not valid. Switch: lcov).
       - name: Test with coverage (80% line floor)
         shell: powershell
         run: >
           dotnet test test/Responses.Tests/Responses.Tests.csproj -c Release --no-build
           /p:CollectCoverage=true
-          /p:CoverletOutputFormat="opencover,lcov"
+          /p:CoverletOutputFormat=opencover%2Clcov
           /p:CoverletOutput=./coverage/
           /p:ExcludeByAttribute=GeneratedCodeAttribute
           /p:Threshold=80
