@@ -13,16 +13,16 @@ public class ErrorModelTests
         [Fact]
         public void ErrorType_HasAllExpectedValues()
         {
-            Assert.True(Enum.IsDefined(typeof(ErrorType), ErrorType.Unknown));
-            Assert.True(Enum.IsDefined(typeof(ErrorType), ErrorType.Validation));
-            Assert.True(Enum.IsDefined(typeof(ErrorType), ErrorType.NotFound));
-            Assert.True(Enum.IsDefined(typeof(ErrorType), ErrorType.Conflict));
-            Assert.True(Enum.IsDefined(typeof(ErrorType), ErrorType.Unauthorized));
-            Assert.True(Enum.IsDefined(typeof(ErrorType), ErrorType.Forbidden));
-            Assert.True(Enum.IsDefined(typeof(ErrorType), ErrorType.ServerError));
-            Assert.True(Enum.IsDefined(typeof(ErrorType), ErrorType.Timeout));
-            Assert.True(Enum.IsDefined(typeof(ErrorType), ErrorType.Cancelled));
-            Assert.True(Enum.IsDefined(typeof(ErrorType), ErrorType.InternalError));
+            Assert.True(Enum.IsDefined(ErrorType.Unknown));
+            Assert.True(Enum.IsDefined(ErrorType.Validation));
+            Assert.True(Enum.IsDefined(ErrorType.NotFound));
+            Assert.True(Enum.IsDefined(ErrorType.Conflict));
+            Assert.True(Enum.IsDefined(ErrorType.Unauthorized));
+            Assert.True(Enum.IsDefined(ErrorType.Forbidden));
+            Assert.True(Enum.IsDefined(ErrorType.ServerError));
+            Assert.True(Enum.IsDefined(ErrorType.Timeout));
+            Assert.True(Enum.IsDefined(ErrorType.Cancelled));
+            Assert.True(Enum.IsDefined(ErrorType.InternalError));
         }
 
         [Fact]
@@ -148,10 +148,12 @@ public class ErrorModelTests
         [Fact]
         public void Error_ImplementsIError()
         {
-            IError error = new Error("ERR", "msg", ErrorType.Validation);
-            Assert.Equal("ERR", error.Code);
-            Assert.Equal("msg", error.Message);
-            Assert.Equal(ErrorType.Validation, error.Type);
+            var error = new Error("ERR", "msg", ErrorType.Validation);
+
+            var contract = Assert.IsAssignableFrom<IError>(error);
+            Assert.Equal("ERR", contract.Code);
+            Assert.Equal("msg", contract.Message);
+            Assert.Equal(ErrorType.Validation, contract.Type);
         }
     }
 

@@ -342,7 +342,7 @@ public class FunctionalCompositionTests
         {
             var result = Result.Ok("hello@example.com")
                 .Ensure(s => !string.IsNullOrEmpty(s), new Error("EMPTY", "required"))
-                .Ensure(s => s.Contains("@"), new Error("FMT", "invalid format"))
+                .Ensure(s => s.Contains('@'), new Error("FMT", "invalid format"))
                 .Ensure(s => s.Length >= 5, new Error("LEN", "too short"));
             Assert.True(result.IsSuccess);
         }
@@ -352,7 +352,7 @@ public class FunctionalCompositionTests
         {
             var result = Result.Ok("x")
                 .Ensure(s => !string.IsNullOrEmpty(s), new Error("EMPTY", "required"))
-                .Ensure(s => s.Contains("@"), new Error("FMT", "invalid format"))
+                .Ensure(s => s.Contains('@'), new Error("FMT", "invalid format"))
                 .Ensure(s => s.Length >= 5, new Error("LEN", "too short"));
             Assert.False(result.IsSuccess);
             Assert.Equal("FMT", result.Error.Code);
