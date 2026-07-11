@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 
 namespace Responses;
 
@@ -226,19 +227,22 @@ public readonly struct Result
     /// </summary>
     public readonly void Match(Action onSuccess, Action<Error> onFailure)
     {
+        ArgumentNullException.ThrowIfNull(onSuccess);
+        ArgumentNullException.ThrowIfNull(onFailure);
         if (IsSuccess) onSuccess(); else onFailure(_error!.Value);
     }
 
     /// <summary>
     /// Returns the result value if successful, otherwise returns the fallback value.
     /// </summary>
-    public readonly T Else<T>(T fallbackValue) => IsSuccess ? throw new InvalidOperationException("Cannot call Else on Result<void>. Use Result<T> instead.") : fallbackValue;
+    public readonly T Else<T>(T fallbackValue) => IsSuccess ? throw new InvalidOperationException(ResultMessages.ElseOnVoidResult) : fallbackValue;
 
     /// <summary>
     /// Executes an action without modifying the result if the operation succeeded.
     /// </summary>
     public readonly Result Tap(Action action)
     {
+        ArgumentNullException.ThrowIfNull(action);
         if (IsSuccess) action();
         return this;
     }
@@ -246,18 +250,27 @@ public readonly struct Result
     /// <summary>
     /// Chains another fallible operation if this result is successful.
     /// </summary>
-    public readonly Result Bind(Func<Result> func) => IsSuccess ? func() : this;
+    public readonly Result Bind(Func<Result> func)
+    {
+        ArgumentNullException.ThrowIfNull(func);
+        return IsSuccess ? func() : this;
+    }
 
     /// <summary>
     /// Chains another async fallible operation if this result is successful.
     /// </summary>
-    public readonly async System.Threading.Tasks.Task<Result> BindAsync(Func<System.Threading.Tasks.Task<Result>> func) => IsSuccess ? await func() : this;
+    public readonly async Task<Result> BindAsync(Func<Task<Result>> func)
+    {
+        ArgumentNullException.ThrowIfNull(func);
+        return IsSuccess ? await func() : this;
+    }
 
     /// <summary>
     /// Executes an async action without modifying the result if the operation succeeded.
     /// </summary>
-    public readonly async System.Threading.Tasks.Task<Result> TapAsync(Func<System.Threading.Tasks.Task> action)
+    public readonly async Task<Result> TapAsync(Func<Task> action)
     {
+        ArgumentNullException.ThrowIfNull(action);
         if (IsSuccess) await action();
         return this;
     }
@@ -400,6 +413,8 @@ public readonly struct Result<T>
     /// </summary>
     public readonly void Match(Action<T> onSuccess, Action<Error> onFailure)
     {
+        ArgumentNullException.ThrowIfNull(onSuccess);
+        ArgumentNullException.ThrowIfNull(onFailure);
         if (IsSuccess) onSuccess(_value!); else onFailure(_error!.Value);
     }
 
@@ -411,29 +426,36 @@ public readonly struct Result<T>
     /// <summary>
     /// Returns the result value if successful, otherwise returns the result of the fallback function.
     /// </summary>
-    public readonly T Else(Func<Error, T> fallbackFunc) => IsSuccess ? _value! : fallbackFunc(_error!.Value);
+    public readonly T Else(Func<Error, T> fallbackFunc)
+    {
+        ArgumentNullException.ThrowIfNull(fallbackFunc);
+        return IsSuccess ? _value! : fallbackFunc(_error!.Value);
+    }
 
     /// <summary>
     /// Transforms the result value using an async function.
     /// </summary>
-    public readonly async System.Threading.Tasks.Task<Result<TOut>> MapAsync<TOut>(Func<T, System.Threading.Tasks.Task<TOut>> func)
+    public readonly async Task<Result<TOut>> MapAsync<TOut>(Func<T, Task<TOut>> func)
     {
+        ArgumentNullException.ThrowIfNull(func);
         return IsSuccess ? Result.Ok(await func(_value!)) : new Result<TOut>(false, _error, default);
     }
 
     /// <summary>
     /// Chains a fallible async operation that may produce a new result.
     /// </summary>
-    public readonly async System.Threading.Tasks.Task<Result<TOut>> BindAsync<TOut>(Func<T, System.Threading.Tasks.Task<Result<TOut>>> func)
+    public readonly async Task<Result<TOut>> BindAsync<TOut>(Func<T, Task<Result<TOut>>> func)
     {
+        ArgumentNullException.ThrowIfNull(func);
         return IsSuccess ? await func(_value!) : new Result<TOut>(false, _error, default);
     }
 
     /// <summary>
     /// Executes an async action without modifying the result if the operation succeeded.
     /// </summary>
-    public readonly async System.Threading.Tasks.Task<Result<T>> TapAsync(Func<T, System.Threading.Tasks.Task> action)
+    public readonly async Task<Result<T>> TapAsync(Func<T, Task> action)
     {
+        ArgumentNullException.ThrowIfNull(action);
         if (IsSuccess) await action(_value!);
         return this;
     }
@@ -441,8 +463,9 @@ public readonly struct Result<T>
     /// <summary>
     /// Validates the result value against an async predicate.
     /// </summary>
-    public readonly async System.Threading.Tasks.Task<Result<T>> EnsureAsync(Predicate<T> predicate, Error error)
+    public readonly async Task<Result<T>> EnsureAsync(Predicate<T> predicate, Error error)
     {
+        ArgumentNullException.ThrowIfNull(predicate);
         if (!IsSuccess) return this;
         if (!predicate(_value!)) return new Result<T>(false, error, default);
         return this;
@@ -451,16 +474,19 @@ public readonly struct Result<T>
     /// <summary>
     /// Executes the appropriate async function based on success or failure state.
     /// </summary>
-    public readonly async System.Threading.Tasks.Task<TResult> MatchAsync<TResult>(Func<T, System.Threading.Tasks.Task<TResult>> onSuccess, Func<Error, System.Threading.Tasks.Task<TResult>> onFailure)
+    public readonly async Task<TResult> MatchAsync<TResult>(Func<T, Task<TResult>> onSuccess, Func<Error, Task<TResult>> onFailure)
     {
+        ArgumentNullException.ThrowIfNull(onSuccess);
+        ArgumentNullException.ThrowIfNull(onFailure);
         return IsSuccess ? await onSuccess(_value!) : await onFailure(_error!.Value);
     }
 
     /// <summary>
     /// Returns the result value if successful, otherwise returns the result of the async fallback function.
     /// </summary>
-    public readonly async System.Threading.Tasks.Task<T> ElseAsync(Func<Error, System.Threading.Tasks.Task<T>> fallbackFunc)
+    public readonly async Task<T> ElseAsync(Func<Error, Task<T>> fallbackFunc)
     {
+        ArgumentNullException.ThrowIfNull(fallbackFunc);
         return IsSuccess ? _value! : await fallbackFunc(_error!.Value);
     }
 
@@ -479,6 +505,8 @@ public readonly struct Result<T>
     /// </summary>
     public readonly Result<TResult> SelectMany<TIntermediate, TResult>(Func<T, Result<TIntermediate>> collectionSelector, Func<T, TIntermediate, TResult> resultSelector)
     {
+        ArgumentNullException.ThrowIfNull(collectionSelector);
+        ArgumentNullException.ThrowIfNull(resultSelector);
         if (!IsSuccess) return new Result<TResult>(isSuccess: false, error: _error, value: default);
 
         var intermediate = collectionSelector(_value!);
@@ -569,6 +597,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     /// </summary>
     public readonly Result<TOut, TError> Map<TOut>(Func<TValue, TOut> func)
     {
+        ArgumentNullException.ThrowIfNull(func);
         return IsSuccess ? Result.Ok<TOut, TError>(func(_value!)) : Result.Fail<TOut, TError>(_error!);
     }
 
@@ -577,6 +606,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     /// </summary>
     public readonly Result<TOut, TError> Bind<TOut>(Func<TValue, Result<TOut, TError>> func)
     {
+        ArgumentNullException.ThrowIfNull(func);
         return IsSuccess ? func(_value!) : Result.Fail<TOut, TError>(_error!);
     }
 
@@ -585,6 +615,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     /// </summary>
     public readonly Result<TValue, TError> Tap(Action<TValue> action)
     {
+        ArgumentNullException.ThrowIfNull(action);
         if (IsSuccess) action(_value!);
         return this;
     }
@@ -594,6 +625,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     /// </summary>
     public readonly Result<TValue, TError> Ensure(Predicate<TValue> predicate, TError error)
     {
+        ArgumentNullException.ThrowIfNull(predicate);
         if (!IsSuccess) return this;
         if (!predicate(_value!)) return Result.Fail<TValue, TError>(error);
         return this;
@@ -604,6 +636,8 @@ public readonly struct Result<TValue, TError> where TError : IError
     /// </summary>
     public readonly TResult Match<TResult>(Func<TValue, TResult> onSuccess, Func<TError, TResult> onFailure)
     {
+        ArgumentNullException.ThrowIfNull(onSuccess);
+        ArgumentNullException.ThrowIfNull(onFailure);
         return IsSuccess ? onSuccess(_value!) : onFailure(_error!);
     }
 
@@ -612,6 +646,8 @@ public readonly struct Result<TValue, TError> where TError : IError
     /// </summary>
     public readonly void Match(Action<TValue> onSuccess, Action<TError> onFailure)
     {
+        ArgumentNullException.ThrowIfNull(onSuccess);
+        ArgumentNullException.ThrowIfNull(onFailure);
         if (IsSuccess) onSuccess(_value!); else onFailure(_error!);
     }
 
@@ -623,29 +659,36 @@ public readonly struct Result<TValue, TError> where TError : IError
     /// <summary>
     /// Returns the result value if successful, otherwise returns the result of the fallback function.
     /// </summary>
-    public readonly TValue Else(Func<TError, TValue> fallbackFunc) => IsSuccess ? _value! : fallbackFunc(_error!);
+    public readonly TValue Else(Func<TError, TValue> fallbackFunc)
+    {
+        ArgumentNullException.ThrowIfNull(fallbackFunc);
+        return IsSuccess ? _value! : fallbackFunc(_error!);
+    }
 
     /// <summary>
     /// Transforms the result value using an async function.
     /// </summary>
-    public readonly async System.Threading.Tasks.Task<Result<TOut, TError>> MapAsync<TOut>(Func<TValue, System.Threading.Tasks.Task<TOut>> func)
+    public readonly async Task<Result<TOut, TError>> MapAsync<TOut>(Func<TValue, Task<TOut>> func)
     {
+        ArgumentNullException.ThrowIfNull(func);
         return IsSuccess ? Result.Ok<TOut, TError>(await func(_value!)) : Result.Fail<TOut, TError>(_error!);
     }
 
     /// <summary>
     /// Chains a fallible async operation.
     /// </summary>
-    public readonly async System.Threading.Tasks.Task<Result<TOut, TError>> BindAsync<TOut>(Func<TValue, System.Threading.Tasks.Task<Result<TOut, TError>>> func)
+    public readonly async Task<Result<TOut, TError>> BindAsync<TOut>(Func<TValue, Task<Result<TOut, TError>>> func)
     {
+        ArgumentNullException.ThrowIfNull(func);
         return IsSuccess ? await func(_value!) : Result.Fail<TOut, TError>(_error!);
     }
 
     /// <summary>
     /// Executes an async action without modifying the result.
     /// </summary>
-    public readonly async System.Threading.Tasks.Task<Result<TValue, TError>> TapAsync(Func<TValue, System.Threading.Tasks.Task> action)
+    public readonly async Task<Result<TValue, TError>> TapAsync(Func<TValue, Task> action)
     {
+        ArgumentNullException.ThrowIfNull(action);
         if (IsSuccess) await action(_value!);
         return this;
     }
@@ -653,8 +696,9 @@ public readonly struct Result<TValue, TError> where TError : IError
     /// <summary>
     /// Validates the result value against an async predicate.
     /// </summary>
-    public readonly async System.Threading.Tasks.Task<Result<TValue, TError>> EnsureAsync(Predicate<TValue> predicate, TError error)
+    public readonly async Task<Result<TValue, TError>> EnsureAsync(Predicate<TValue> predicate, TError error)
     {
+        ArgumentNullException.ThrowIfNull(predicate);
         if (!IsSuccess) return this;
         if (!predicate(_value!)) return Result.Fail<TValue, TError>(error);
         return this;
@@ -663,16 +707,19 @@ public readonly struct Result<TValue, TError> where TError : IError
     /// <summary>
     /// Executes the appropriate async function based on success or failure state.
     /// </summary>
-    public readonly async System.Threading.Tasks.Task<TResult> MatchAsync<TResult>(Func<TValue, System.Threading.Tasks.Task<TResult>> onSuccess, Func<TError, System.Threading.Tasks.Task<TResult>> onFailure)
+    public readonly async Task<TResult> MatchAsync<TResult>(Func<TValue, Task<TResult>> onSuccess, Func<TError, Task<TResult>> onFailure)
     {
+        ArgumentNullException.ThrowIfNull(onSuccess);
+        ArgumentNullException.ThrowIfNull(onFailure);
         return IsSuccess ? await onSuccess(_value!) : await onFailure(_error!);
     }
 
     /// <summary>
     /// Returns the result value if successful, otherwise returns the result of the async fallback function.
     /// </summary>
-    public readonly async System.Threading.Tasks.Task<TValue> ElseAsync(Func<TError, System.Threading.Tasks.Task<TValue>> fallbackFunc)
+    public readonly async Task<TValue> ElseAsync(Func<TError, Task<TValue>> fallbackFunc)
     {
+        ArgumentNullException.ThrowIfNull(fallbackFunc);
         return IsSuccess ? _value! : await fallbackFunc(_error!);
     }
 
@@ -691,6 +738,8 @@ public readonly struct Result<TValue, TError> where TError : IError
     /// </summary>
     public readonly Result<TResult, TError> SelectMany<TIntermediate, TResult>(Func<TValue, Result<TIntermediate, TError>> collectionSelector, Func<TValue, TIntermediate, TResult> resultSelector)
     {
+        ArgumentNullException.ThrowIfNull(collectionSelector);
+        ArgumentNullException.ThrowIfNull(resultSelector);
         if (!IsSuccess) return Result.Fail<TResult, TError>(_error!);
 
         var intermediate = collectionSelector(_value!);
