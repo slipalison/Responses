@@ -110,6 +110,21 @@ public class ErrorModelTests
         }
 
         [Fact]
+        public void ErrorCollection_Default_IsEmptyAndSafeToEnumerate()
+        {
+            ErrorCollection collection = default;
+            Assert.Equal(0, collection.Count);
+            Assert.Empty(collection);
+        }
+
+        [Fact]
+        public void ErrorCollection_Default_IndexerThrowsIndexOutOfRange()
+        {
+            ErrorCollection collection = default;
+            Assert.Throws<IndexOutOfRangeException>(() => collection[0]);
+        }
+
+        [Fact]
         public void Error_ToString_IncludesTypeAndCode()
         {
             var error = new Error("ERR", "msg", ErrorType.Validation);

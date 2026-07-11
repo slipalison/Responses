@@ -12,7 +12,9 @@ namespace Responses;
 public readonly struct ErrorCollection : IReadOnlyList<IError>
 {
     private static readonly ErrorCollection _empty = new(Array.Empty<IError>());
-    private readonly IError[] _errors;
+
+    // Nullable because default(ErrorCollection) bypasses every constructor.
+    private readonly IError[]? _errors;
 
     /// <summary>
     /// Gets an empty error collection.
@@ -35,14 +37,16 @@ public readonly struct ErrorCollection : IReadOnlyList<IError>
         _errors = errors?.ToArray() ?? Array.Empty<IError>();
     }
 
-    /// <inheritdoc />
-    public int Count => _errors.Length;
+    private IError[] Errors => _errors ?? Array.Empty<IError>();
 
     /// <inheritdoc />
-    public IError this[int index] => _errors[index];
+    public int Count => Errors.Length;
 
     /// <inheritdoc />
-    public IEnumerator<IError> GetEnumerator() => ((IEnumerable<IError>)_errors).GetEnumerator();
+    public IError this[int index] => Errors[index];
+
+    /// <inheritdoc />
+    public IEnumerator<IError> GetEnumerator() => ((IEnumerable<IError>)Errors).GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
