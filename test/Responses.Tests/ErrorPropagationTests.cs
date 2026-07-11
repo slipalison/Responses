@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Responses.Tests;
@@ -49,5 +50,64 @@ public class ErrorPropagationTests
         var result = Result.Fail(new IError[] { original });
         Assert.Equal(original.Code, result.Error.Code);
         Assert.Equal(original.Type, result.Error.Type);
+    }
+
+    private static readonly IError[] _threeErrors =
+    {
+        new Error("E1", "first"),
+        new Error("E2", "second"),
+        new Error("E3", "third"),
+    };
+
+    [Fact]
+    public void Map_OnFailure_PreservesAllErrors()
+    {
+        var mapped = Result.Fail<int>(_threeErrors).Map(x => x * 2);
+        Assert.Equal(3, mapped.Errors.Count);
+    }
+
+    [Fact]
+    public void Bind_OnFailure_PreservesAllErrors()
+    {
+        var bound = Result.Fail<int>(_threeErrors).Bind(x => Result.Ok(x + 1));
+        Assert.Equal(3, bound.Errors.Count);
+    }
+
+    [Fact]
+    public async Task MapAsync_OnFailure_PreservesAllErrors()
+    {
+        var mapped = await Result.Fail<int>(_threeErrors).MapAsync(x => Task.FromResult(x * 2));
+        Assert.Equal(3, mapped.Errors.Count);
+    }
+
+    [Fact]
+    public async Task BindAsync_OnFailure_PreservesAllErrors()
+    {
+        var bound = await Result.Fail<int>(_threeErrors).BindAsync(x => Task.FromResult(Result.Ok(x)));
+        Assert.Equal(3, bound.Errors.Count);
+    }
+
+    [Fact]
+    public void SelectMany_OnFailure_PreservesAllErrors()
+    {
+        var projected =
+            from x in Result.Fail<int>(_threeErrors)
+            from y in Result.Ok(10)
+            select x + y;
+        Assert.Equal(3, projected.Errors.Count);
+    }
+
+    [Fact]
+    public void TypedMap_OnFailure_PreservesAllErrors()
+    {
+        var mapped = Result.Fail<int, Error>(_threeErrors).Map(x => x * 2);
+        Assert.Equal(3, mapped.Errors.Count);
+    }
+
+    [Fact]
+    public void TypedBind_OnFailure_PreservesAllErrors()
+    {
+        var bound = Result.Fail<int, Error>(_threeErrors).Bind(x => Result.Ok<int, Error>(x));
+        Assert.Equal(3, bound.Errors.Count);
     }
 }

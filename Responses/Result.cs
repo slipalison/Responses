@@ -365,7 +365,7 @@ public readonly struct Result<T>
     public readonly Result<TOut> Map<TOut>(Func<T, TOut> func)
     {
         ArgumentNullException.ThrowIfNull(func);
-        return IsSuccess ? Result.Ok(func(_value!)) : new Result<TOut>(false, _error, default);
+        return IsSuccess ? Result.Ok(func(_value!)) : new Result<TOut>(false, _errors, default);
     }
 
     /// <summary>
@@ -374,7 +374,7 @@ public readonly struct Result<T>
     public readonly Result<TOut> Bind<TOut>(Func<T, Result<TOut>> func)
     {
         ArgumentNullException.ThrowIfNull(func);
-        return IsSuccess ? func(_value!) : new Result<TOut>(false, _error, default);
+        return IsSuccess ? func(_value!) : new Result<TOut>(false, _errors, default);
     }
 
     /// <summary>
@@ -438,7 +438,7 @@ public readonly struct Result<T>
     public readonly async Task<Result<TOut>> MapAsync<TOut>(Func<T, Task<TOut>> func)
     {
         ArgumentNullException.ThrowIfNull(func);
-        return IsSuccess ? Result.Ok(await func(_value!)) : new Result<TOut>(false, _error, default);
+        return IsSuccess ? Result.Ok(await func(_value!)) : new Result<TOut>(false, _errors, default);
     }
 
     /// <summary>
@@ -447,7 +447,7 @@ public readonly struct Result<T>
     public readonly async Task<Result<TOut>> BindAsync<TOut>(Func<T, Task<Result<TOut>>> func)
     {
         ArgumentNullException.ThrowIfNull(func);
-        return IsSuccess ? await func(_value!) : new Result<TOut>(false, _error, default);
+        return IsSuccess ? await func(_value!) : new Result<TOut>(false, _errors, default);
     }
 
     /// <summary>
@@ -502,10 +502,10 @@ public readonly struct Result<T>
     {
         ArgumentNullException.ThrowIfNull(collectionSelector);
         ArgumentNullException.ThrowIfNull(resultSelector);
-        if (!IsSuccess) return new Result<TResult>(isSuccess: false, error: _error, value: default);
+        if (!IsSuccess) return new Result<TResult>(isSuccess: false, errors: _errors, value: default);
 
         var intermediate = collectionSelector(_value!);
-        if (!intermediate.IsSuccess) return new Result<TResult>(isSuccess: false, error: intermediate._error, value: default);
+        if (!intermediate.IsSuccess) return new Result<TResult>(isSuccess: false, errors: intermediate._errors, value: default);
 
         return new Result<TResult>(isSuccess: true, error: default, value: resultSelector(_value!, intermediate.Value));
     }
@@ -600,7 +600,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     public readonly Result<TOut, TError> Map<TOut>(Func<TValue, TOut> func)
     {
         ArgumentNullException.ThrowIfNull(func);
-        return IsSuccess ? Result.Ok<TOut, TError>(func(_value!)) : Result.Fail<TOut, TError>(_error!);
+        return IsSuccess ? Result.Ok<TOut, TError>(func(_value!)) : new Result<TOut, TError>(false, _errors, default);
     }
 
     /// <summary>
@@ -609,7 +609,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     public readonly Result<TOut, TError> Bind<TOut>(Func<TValue, Result<TOut, TError>> func)
     {
         ArgumentNullException.ThrowIfNull(func);
-        return IsSuccess ? func(_value!) : Result.Fail<TOut, TError>(_error!);
+        return IsSuccess ? func(_value!) : new Result<TOut, TError>(false, _errors, default);
     }
 
     /// <summary>
@@ -673,7 +673,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     public readonly async Task<Result<TOut, TError>> MapAsync<TOut>(Func<TValue, Task<TOut>> func)
     {
         ArgumentNullException.ThrowIfNull(func);
-        return IsSuccess ? Result.Ok<TOut, TError>(await func(_value!)) : Result.Fail<TOut, TError>(_error!);
+        return IsSuccess ? Result.Ok<TOut, TError>(await func(_value!)) : new Result<TOut, TError>(false, _errors, default);
     }
 
     /// <summary>
@@ -682,7 +682,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     public readonly async Task<Result<TOut, TError>> BindAsync<TOut>(Func<TValue, Task<Result<TOut, TError>>> func)
     {
         ArgumentNullException.ThrowIfNull(func);
-        return IsSuccess ? await func(_value!) : Result.Fail<TOut, TError>(_error!);
+        return IsSuccess ? await func(_value!) : new Result<TOut, TError>(false, _errors, default);
     }
 
     /// <summary>
@@ -737,10 +737,10 @@ public readonly struct Result<TValue, TError> where TError : IError
     {
         ArgumentNullException.ThrowIfNull(collectionSelector);
         ArgumentNullException.ThrowIfNull(resultSelector);
-        if (!IsSuccess) return Result.Fail<TResult, TError>(_error!);
+        if (!IsSuccess) return new Result<TResult, TError>(false, _errors, default);
 
         var intermediate = collectionSelector(_value!);
-        if (!intermediate.IsSuccess) return Result.Fail<TResult, TError>(intermediate.Error);
+        if (!intermediate.IsSuccess) return new Result<TResult, TError>(false, intermediate._errors, default);
 
         return Result.Ok<TResult, TError>(resultSelector(_value!, intermediate.Value));
     }
