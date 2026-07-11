@@ -29,11 +29,23 @@ namespace Responses.Serialization;
 [JsonSerializable(typeof(Dictionary<string, string>))]
 public partial class ResultJsonContext : JsonSerializerContext
 {
+    // Lazy defers creation past this type's static initialization: field initializers in a
+    // partial class have no cross-file order, so touching Default here could observe null.
+    private static readonly System.Lazy<JsonSerializerOptions> _defaultOptions = new(CreateDefaultOptions);
+
     /// <summary>
-    /// Default serialization options with Error converter registered.
+    /// Default serialization options backed by this source-generated context.
     /// </summary>
-    public static readonly JsonSerializerOptions DefaultOptions = new()
+    public static JsonSerializerOptions DefaultOptions => _defaultOptions.Value;
+
+    private static JsonSerializerOptions CreateDefaultOptions()
     {
-        TypeInfoResolver = Default,
-    };
+        var options = new JsonSerializerOptions
+        {
+            TypeInfoResolver = Default,
+        };
+        // Freeze the shared instance so no caller can mutate global serialization behavior.
+        options.MakeReadOnly();
+        return options;
+    }
 }

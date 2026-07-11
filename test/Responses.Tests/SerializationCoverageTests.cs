@@ -19,6 +19,33 @@ public class SerializationCoverageTests
         WriteIndented = false,
     };
 
+    #region ResultJsonContext DefaultOptions
+
+    public class DefaultOptionsBehavior
+    {
+        [Fact]
+        public void DefaultOptions_IsReadOnly_MutationThrows()
+        {
+            Assert.True(ResultJsonContext.DefaultOptions.IsReadOnly);
+            Assert.Throws<InvalidOperationException>(() => ResultJsonContext.DefaultOptions.WriteIndented = true);
+        }
+
+        [Fact]
+        public void DefaultOptions_UsesSourceGeneratedResolver()
+        {
+            Assert.Same(ResultJsonContext.Default, ResultJsonContext.DefaultOptions.TypeInfoResolver);
+        }
+
+        [Fact]
+        public void DefaultOptions_SerializesResult()
+        {
+            var json = JsonSerializer.Serialize(Result.Ok(), ResultJsonContext.DefaultOptions);
+            Assert.Contains("isSuccessful", json);
+        }
+    }
+
+    #endregion
+
     #region ResultDto Edge Cases
 
     public class ResultDtoEdgeCases
