@@ -5,6 +5,8 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+  release:
+    types: [ published ]
 
 env:
   DOTNET_NOLOGO: true
@@ -75,7 +77,9 @@ jobs:
   publish:
     name: Publish NuGet packages
     needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    # Publishing is deliberate: it runs only when a GitHub Release is published,
+    # packing the version currently in the csproj files.
+    if: github.event_name == 'release'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

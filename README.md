@@ -3,7 +3,7 @@
 > A modern .NET 10 library implementing the Result Pattern with Railway-Oriented Programming and Flurl HTTP integration.
 
 ![.NET](https://img.shields.io/badge/.NET-10.0-blue)
-![Version](https://img.shields.io/badge/version-2.0.0-green)
+![Version](https://img.shields.io/badge/version-3.0.0-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 [![CI](https://github.com/slipalison/Responses/actions/workflows/dotnetcore.yml/badge.svg)](https://github.com/slipalison/Responses/actions/workflows/dotnetcore.yml)
 [![codecov](https://codecov.io/gh/slipalison/Responses/branch/master/graph/badge.svg)](https://codecov.io/gh/slipalison/Responses)
@@ -64,8 +64,8 @@ Responses provides:
 ## Installation
 
 ```bash
-dotnet add package Responses --version 2.0.0
-dotnet add package Responses.Http --version 2.0.0
+dotnet add package Responses --version 3.0.0
+dotnet add package Responses.Http --version 3.0.0
 ```
 
 **Requirements:** .NET 10.0+
@@ -557,8 +557,16 @@ Development rules live in [`.claude/rules/`](.claude/rules/) (`csharp.md` for th
 
 | Version | Changes |
 |---------|---------|
+| 3.0.0 | Multi-error preserved through composition; any `IError` accepted by failure factories; empty failures rejected and defaulted results made coherent; `ConfigureAwait(false)` throughout; HTTP metadata capture via `ReceiveResultWithInfo`; serialization restricted to round-trippable DTOs; `Result.Else<T>` (void) deprecated |
 | 2.0.0 | .NET 10, readonly struct, railway-oriented programming, STJ, Flurl 4.x, multi-error, ProblemDetails |
 | 1.2.0 | Legacy Newtonsoft.Json-based Result pattern with Flurl 3.x extensions |
+
+### Breaking changes in 3.0.0
+
+- `Result.Fail()` with no errors (or an empty sequence) now throws `ArgumentException` — a failed result must carry at least one error.
+- The `ResultJsonContext` no longer serializes `Result` structs directly (the `Default.Result`/`Default.ResultInt32`/… properties are gone); serialize through the `ResultDto` projections instead.
+- `Result<T>.WithHttpInfo()` no longer exists in its placeholder form; use `ReceiveResultWithInfo` to capture HTTP metadata, or `WithHttpInfo(httpInfo)` to attach it.
+- `Result.Else<T>` on a void result is marked `[Obsolete]`.
 
 ---
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -248,8 +249,12 @@ public readonly struct Result
     }
 
     /// <summary>
-    /// Returns the result value if successful, otherwise returns the fallback value.
+    /// Returns the fallback value. Only meaningful on a failed void result — a partial
+    /// function that throws on success. Prefer <see cref="Result{T}.Else(T)"/>.
     /// </summary>
+    [Obsolete("Else on a void Result throws on success. Use Result<T>.Else instead.")]
+    [SuppressMessage("Major Code Smell", "S1133:Deprecated code should be removed",
+        Justification = "Intentional public-API deprecation kept for backward compatibility until the next major.")]
     public readonly T Else<T>(T fallbackValue) => IsSuccess ? throw new InvalidOperationException(ResultMessages.ElseOnVoidResult) : fallbackValue;
 
     /// <summary>
