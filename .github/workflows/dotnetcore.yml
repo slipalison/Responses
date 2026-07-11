@@ -1,4 +1,4 @@
-name: .NET Core
+name: CI
 
 on:
   push:
@@ -6,71 +6,94 @@ on:
   pull_request:
     branches: [ master ]
 
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
 jobs:
   build:
-    runs-on: windows-latest
-
+    name: Build, test and analyze
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
+          # Full history so SonarQube can compute blame and new-code periods.
           fetch-depth: 0
-      - name: Setup .NET Core
-        uses: actions/setup-dotnet@v1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
 
-      - name: Build solution
-        run: |
-          git submodule update --init --recursive
-          dotnet restore Responses.sln
-          dotnet build -c Release Responses/Responses.csproj
-
-      - name: Run unit tests
-        run: |
-          dotnet test test/Responses.Tests/Responses.Tests.csproj
-      
-      - name: Run unit tests coverage
-        run: |
-          dotnet test  /p:CollectCoverage=true /p:CoverletOutputFormat=lcov /p:ThresholdType=line /p:CoverletOutput=./lcov test/Responses.Tests/Responses.Tests.csproj
-
-      - name: Codecov
-        uses: codecov/codecov-action@v1.0.6
+      - name: Setup Java (required by the SonarQube scanner)
+        uses: actions/setup-java@v4
         with:
-          # User defined upload name. Visible in Codecov UI
-          #name: # optional
-          # Repository upload token - get it from codecov.io. Required only for private repositories
+          distribution: temurin
+          java-version: '21'
+
+      - name: Restore .NET tools
+        run: dotnet tool restore
+
+      # Skipped when SONAR_TOKEN is unavailable (e.g. pull requests from forks).
+      - name: SonarQube begin
+        if: env.SONAR_TOKEN != ''
+        run: >
+          dotnet tool run dotnet-sonarscanner begin
+          /k:"slipalison_Responses"
+          /o:"slipalison"
+          /d:sonar.host.url="https://sonarcloud.io"
+          /d:sonar.token="${SONAR_TOKEN}"
+          /d:sonar.cs.opencover.reportsPaths="test/Responses.Tests/coverage/coverage.opencover.xml"
+
+      - name: Build
+        run: dotnet build Responses.sln -c Release
+
+      - name: Test with coverage (80% line floor)
+        run: >
+          dotnet test test/Responses.Tests/Responses.Tests.csproj -c Release --no-build
+          /p:CollectCoverage=true
+          /p:CoverletOutputFormat=\"opencover,lcov\"
+          /p:CoverletOutput=./coverage/
+          /p:ExcludeByAttribute=GeneratedCodeAttribute
+          /p:Threshold=80
+          /p:ThresholdType=line
+          /p:ThresholdStat=total
+
+      - name: SonarQube end
+        if: env.SONAR_TOKEN != ''
+        run: dotnet tool run dotnet-sonarscanner end /d:sonar.token="${SONAR_TOKEN}"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          # Path to coverage file to upload
-          file: test/Responses.Tests/lcov.info
-          # Flag upload to group coverage metrics (e.g. unittests | integration | ui,chrome)
-          #flags: # optional
-          # Specify whether or not CI build should fail if Codecov runs into an error during upload
-          #fail_ci_if_error: # optional
+          files: test/Responses.Tests/coverage/coverage.info
 
-      - name: Generate NuGet package
-        run: |
-          dotnet pack -c Release
-      
-      - name: publish on version change
-        uses: rohith/publish-nuget@v2
+  publish:
+    name: Publish NuGet packages
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
-          PROJECT_FILE_PATH: Responses/Responses.csproj # Relative to repository root
-          # VERSION_FILE_PATH: Directory.Build.props # Filepath with version info, relative to repository root. Defaults to project file
-          VERSION_REGEX: <Version>(.*)<\/Version> # Regex pattern to extract version info in a capturing group
-          # VERSION_STATIC: Bypasses version resolution; useful for external providers like Nerdbank.GitVersioning
-          # TAG_COMMIT: true # Flag to enable / disalge git tagging
-          # TAG_FORMAT: v* # Format of the git tag, [*] gets replaced with version
-          NUGET_KEY: ${{ secrets.nuget_token }} # nuget.org API key
-          # PACKAGE_NAME: NuGet package name, required when it's different from project name. Defaults to project name
-          #Get-ChildItem -Path E:\projetos\GitHub\Responses\Responses\bin\Release\* -Include *.nupkg | Select-Object -ExpandProperty FullName | %{dotnet nuget push $_ ${{ secrets.nuget_token }} -s https://api.nuget.org/v3/index.json}
-          
+          dotnet-version: 10.0.x
 
-      - name: publish on version change
-        uses: rohith/publish-nuget@v2
-        with:
-          PROJECT_FILE_PATH: Responses.Http/Responses.Http.csproj # Relative to repository root
-          VERSION_REGEX: <Version>(.*)<\/Version> # Regex pattern to extract version info in a capturing group
-          NUGET_KEY: ${{ secrets.nuget_token }} # nuget.org API key
-    
+      - name: Pack
+        run: dotnet pack Responses.sln -c Release -o ./artifacts
 
+      # --skip-duplicate makes re-publishing an existing version a no-op,
+      # replacing the old "publish on version change" behavior.
+      - name: Push to NuGet
+        run: >
+          dotnet nuget push "./artifacts/*.nupkg"
+          --api-key "${{ secrets.NUGET_TOKEN }}"
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
