@@ -163,10 +163,44 @@ public class HttpExtensionsTests
         }
 
         [Fact]
+        public async Task Fail_ProblemDetailsWithoutTitleOrDetail_FallsBackToStatusAndBody()
+        {
+            var problemJson = """{"type":"https://example.com/errors/not-found"}""";
+
+            using var test = new HttpTest();
+            test.RespondWith(problemJson, 404);
+
+            var result = await "http://test".GetAsync().ReceiveResult();
+            Assert.True(result.IsFailed);
+            Assert.Equal("404", result.Error.Code);
+            Assert.Equal(problemJson, result.Error.Message);
+        }
+
+        [Fact]
         public void ProblemDetails_TryParse_ReturnsNull_WhenNotProblemJson()
         {
             var result = ProblemDetails.TryParse("just a string");
             Assert.Null(result);
+        }
+
+        [Fact]
+        public void ProblemDetails_TryParse_ReturnsNull_WhenEmptyOrNonObjectJson()
+        {
+            Assert.Null(ProblemDetails.TryParse(""));
+            Assert.Null(ProblemDetails.TryParse("   "));
+            Assert.Null(ProblemDetails.TryParse("[1,2,3]"));
+        }
+
+        [Fact]
+        public async Task Fail_EmptyBody_UsesNumericStatusCodeAndStatusLineMessage()
+        {
+            using var test = new HttpTest();
+            test.RespondWith("", 400);
+
+            var result = await "http://test".GetAsync().ReceiveResult();
+            Assert.True(result.IsFailed);
+            Assert.Equal("400", result.Error.Code);
+            Assert.Equal("HTTP 400 BadRequest", result.Error.Message);
         }
 
         [Fact]
