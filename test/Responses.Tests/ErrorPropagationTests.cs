@@ -38,7 +38,7 @@ public class ErrorPropagationTests
     [Fact]
     public void FailOfT_WithCustomIError_DoesNotThrow()
     {
-        var result = Result.Fail<int>(new IError[] { new CustomError() });
+        var result = Result.Fail<int>(new List<IError> { new CustomError() });
         Assert.True(result.IsFailed);
         Assert.Equal("CUSTOM", result.Error.Code);
     }
@@ -47,7 +47,7 @@ public class ErrorPropagationTests
     public void Fail_ConcreteError_IsReturnedUnchanged()
     {
         var original = new Error("E", "m", ErrorType.NotFound);
-        var result = Result.Fail(new IError[] { original });
+        var result = Result.Fail(new List<IError> { original });
         Assert.Equal(original.Code, result.Error.Code);
         Assert.Equal(original.Type, result.Error.Type);
     }
@@ -109,5 +109,60 @@ public class ErrorPropagationTests
     {
         var bound = Result.Fail<int, Error>(_threeErrors).Bind(x => Result.Ok<int, Error>(x));
         Assert.Equal(3, bound.Errors.Count);
+    }
+
+    [Fact]
+    public void Fail_WithNoErrors_Throws()
+    {
+        Assert.Throws<ArgumentException>(() => Result.Fail());
+        Assert.Throws<ArgumentException>(() => Result.Fail(System.Array.Empty<IError>()));
+        Assert.Throws<ArgumentException>(() => Result.Fail<int>(System.Array.Empty<IError>()));
+        Assert.Throws<ArgumentException>(() => Result.Fail<int, Error>(System.Array.Empty<IError>()));
+    }
+
+    [Fact]
+    public void Fail_WithNullErrors_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => Result.Fail((IEnumerable<IError>)null!));
+    }
+
+    [Fact]
+    public void DefaultResult_IsCoherentFailure()
+    {
+        Result result = default;
+        Assert.True(result.IsFailed);
+        Assert.False(result.IsSuccess);
+
+        var error = result.Error;
+        Assert.Equal("Unknown", error.Code);
+        Assert.Equal(ErrorType.Unknown, error.Type);
+        Assert.Empty(result.Errors);
+    }
+
+    [Fact]
+    public void DefaultResult_Match_ReceivesSentinelError()
+    {
+        Result result = default;
+        string observed = string.Empty;
+        result.Match(() => observed = "ok", e => observed = e.Code);
+        Assert.Equal("Unknown", observed);
+    }
+
+    [Fact]
+    public void DefaultResultOfT_ErrorAccess_DoesNotThrow()
+    {
+        Result<int> result = default;
+        Assert.True(result.IsFailed);
+        Assert.Equal("Unknown", result.Error.Code);
+        Assert.Equal(0, result.ValueOrDefault);
+    }
+
+    [Fact]
+    public void DefaultTypedResult_ReferenceError_ThrowsClearMessage()
+    {
+        Result<int, CustomError> result = default;
+        Assert.True(result.IsFailed);
+        var ex = Assert.Throws<InvalidOperationException>(() => result.Error);
+        Assert.Contains("default state", ex.Message);
     }
 }

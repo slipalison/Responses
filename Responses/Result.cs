@@ -26,7 +26,7 @@ public readonly struct Result
         {
             if (IsSuccess)
                 throw new InvalidOperationException(ResultMessages.ErrorMessageToSuccess);
-            return _error!.Value;
+            return _error ?? Error.Unknown;
         }
     }
 
@@ -46,6 +46,10 @@ public readonly struct Result
     /// </summary>
     [JsonPropertyName("isFailed")]
     public bool IsFailed => !IsSuccess;
+
+    // Coalesces to a well-defined sentinel so default(Result) surfaces a coherent
+    // failure instead of a NullReferenceException from the nullable backing field.
+    private Error FailureError => _error ?? Error.Unknown;
 
     internal Result(bool isSuccess, Error? error)
     {
@@ -110,13 +114,13 @@ public readonly struct Result
     /// Creates a failed result with the specified errors.
     /// </summary>
     [DebuggerStepThrough]
-    public static Result Fail(IEnumerable<IError> errors) => new(isSuccess: false, errors: new ErrorCollection(errors));
+    public static Result Fail(IEnumerable<IError> errors) => new(isSuccess: false, errors: RequireErrors(errors));
 
     /// <summary>
     /// Creates a failed result with the specified errors.
     /// </summary>
     [DebuggerStepThrough]
-    public static Result Fail(params IError[] errors) => new(isSuccess: false, errors: new ErrorCollection(errors));
+    public static Result Fail(params IError[] errors) => new(isSuccess: false, errors: RequireErrors(errors));
 
     /// <summary>
     /// Creates a failed result with the specified error code and message.
@@ -146,13 +150,13 @@ public readonly struct Result
     /// Creates a failed result with the specified errors.
     /// </summary>
     [DebuggerStepThrough]
-    public static Result<T> Fail<T>(IEnumerable<IError> errors) => new(isSuccess: false, errors: new ErrorCollection(errors), value: default!);
+    public static Result<T> Fail<T>(IEnumerable<IError> errors) => new(isSuccess: false, errors: RequireErrors(errors), value: default!);
 
     /// <summary>
     /// Creates a failed result with the specified errors.
     /// </summary>
     [DebuggerStepThrough]
-    public static Result<T> Fail<T>(params IError[] errors) => new(isSuccess: false, errors: new ErrorCollection(errors), value: default!);
+    public static Result<T> Fail<T>(params IError[] errors) => new(isSuccess: false, errors: RequireErrors(errors), value: default!);
 
     /// <summary>
     /// Creates a failed result with typed error.
@@ -165,14 +169,25 @@ public readonly struct Result
     /// </summary>
     [DebuggerStepThrough]
     public static Result<TValue, TError> Fail<TValue, TError>(IEnumerable<IError> errors) where TError : IError =>
-        new(isSuccess: false, errors: new ErrorCollection(errors), value: default!);
+        new(isSuccess: false, errors: RequireErrors(errors), value: default!);
 
     /// <summary>
     /// Creates a failed result with the specified errors.
     /// </summary>
     [DebuggerStepThrough]
     public static Result<TValue, TError> Fail<TValue, TError>(params IError[] errors) where TError : IError =>
-        new(isSuccess: false, errors: new ErrorCollection(errors), value: default!);
+        new(isSuccess: false, errors: RequireErrors(errors), value: default!);
+
+    // A failed result must describe why it failed; an empty error sequence would produce an
+    // incoherent failure with no accessible error. Reject it at the factory boundary.
+    private static ErrorCollection RequireErrors(IEnumerable<IError> errors)
+    {
+        ArgumentNullException.ThrowIfNull(errors);
+        var collection = new ErrorCollection(errors);
+        if (collection.Count == 0)
+            throw new ArgumentException(ResultMessages.NoErrorsProvided, nameof(errors));
+        return collection;
+    }
 
     /// <summary>
     /// Creates a successful result if the condition is true, otherwise a failed result.
@@ -229,7 +244,7 @@ public readonly struct Result
     {
         ArgumentNullException.ThrowIfNull(onSuccess);
         ArgumentNullException.ThrowIfNull(onFailure);
-        if (IsSuccess) onSuccess(); else onFailure(_error!.Value);
+        if (IsSuccess) onSuccess(); else onFailure(FailureError);
     }
 
     /// <summary>
@@ -296,7 +311,7 @@ public readonly struct Result<T>
         {
             if (IsSuccess)
                 throw new InvalidOperationException(ResultMessages.ErrorMessageToSuccess);
-            return _error!.Value;
+            return _error ?? Error.Unknown;
         }
     }
 
@@ -335,6 +350,9 @@ public readonly struct Result<T>
     /// Gets the result value if successful, otherwise returns default(T).
     /// </summary>
     public T? ValueOrDefault => IsSuccess ? _value : default;
+
+    // See Result.FailureError — keeps default(Result<T>) from throwing on error access.
+    private Error FailureError => _error ?? Error.Unknown;
 
     internal Result(bool isSuccess, Error? error, T? value)
     {
@@ -405,7 +423,7 @@ public readonly struct Result<T>
     {
         ArgumentNullException.ThrowIfNull(onSuccess);
         ArgumentNullException.ThrowIfNull(onFailure);
-        return IsSuccess ? onSuccess(_value!) : onFailure(_error!.Value);
+        return IsSuccess ? onSuccess(_value!) : onFailure(FailureError);
     }
 
     /// <summary>
@@ -415,7 +433,7 @@ public readonly struct Result<T>
     {
         ArgumentNullException.ThrowIfNull(onSuccess);
         ArgumentNullException.ThrowIfNull(onFailure);
-        if (IsSuccess) onSuccess(_value!); else onFailure(_error!.Value);
+        if (IsSuccess) onSuccess(_value!); else onFailure(FailureError);
     }
 
     /// <summary>
@@ -429,7 +447,7 @@ public readonly struct Result<T>
     public readonly T Else(Func<Error, T> fallbackFunc)
     {
         ArgumentNullException.ThrowIfNull(fallbackFunc);
-        return IsSuccess ? _value! : fallbackFunc(_error!.Value);
+        return IsSuccess ? _value! : fallbackFunc(FailureError);
     }
 
     /// <summary>
@@ -478,7 +496,7 @@ public readonly struct Result<T>
     {
         ArgumentNullException.ThrowIfNull(onSuccess);
         ArgumentNullException.ThrowIfNull(onFailure);
-        return IsSuccess ? await onSuccess(_value!) : await onFailure(_error!.Value);
+        return IsSuccess ? await onSuccess(_value!) : await onFailure(FailureError);
     }
 
     /// <summary>
@@ -487,7 +505,7 @@ public readonly struct Result<T>
     public readonly async Task<T> ElseAsync(Func<Error, Task<T>> fallbackFunc)
     {
         ArgumentNullException.ThrowIfNull(fallbackFunc);
-        return IsSuccess ? _value! : await fallbackFunc(_error!.Value);
+        return IsSuccess ? _value! : await fallbackFunc(FailureError);
     }
 
     /// <summary>
@@ -534,7 +552,9 @@ public readonly struct Result<TValue, TError> where TError : IError
     {
         get
         {
-            return !IsSuccess ? _error! : throw new InvalidOperationException(ResultMessages.ErrorMessageToSuccess);
+            return IsSuccess
+                ? throw new InvalidOperationException(ResultMessages.ErrorMessageToSuccess)
+                : _error ?? throw new InvalidOperationException(ResultMessages.DefaultResultHasNoError);
         }
     }
 
@@ -568,6 +588,10 @@ public readonly struct Result<TValue, TError> where TError : IError
     /// Gets the result value if successful, otherwise returns default(TValue).
     /// </summary>
     public TValue? ValueOrDefault => IsSuccess ? _value : default;
+
+    // A generic TError has no sentinel, so a defaulted typed result fails loudly with a
+    // clear message rather than handing a null error to a Match/Else callback.
+    private TError FailureError => _error ?? throw new InvalidOperationException(ResultMessages.DefaultResultHasNoError);
 
     internal Result(bool isSuccess, TError? error, TValue? value)
     {
@@ -640,7 +664,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     {
         ArgumentNullException.ThrowIfNull(onSuccess);
         ArgumentNullException.ThrowIfNull(onFailure);
-        return IsSuccess ? onSuccess(_value!) : onFailure(_error!);
+        return IsSuccess ? onSuccess(_value!) : onFailure(FailureError);
     }
 
     /// <summary>
@@ -650,7 +674,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     {
         ArgumentNullException.ThrowIfNull(onSuccess);
         ArgumentNullException.ThrowIfNull(onFailure);
-        if (IsSuccess) onSuccess(_value!); else onFailure(_error!);
+        if (IsSuccess) onSuccess(_value!); else onFailure(FailureError);
     }
 
     /// <summary>
@@ -664,7 +688,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     public readonly TValue Else(Func<TError, TValue> fallbackFunc)
     {
         ArgumentNullException.ThrowIfNull(fallbackFunc);
-        return IsSuccess ? _value! : fallbackFunc(_error!);
+        return IsSuccess ? _value! : fallbackFunc(FailureError);
     }
 
     /// <summary>
@@ -713,7 +737,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     {
         ArgumentNullException.ThrowIfNull(onSuccess);
         ArgumentNullException.ThrowIfNull(onFailure);
-        return IsSuccess ? await onSuccess(_value!) : await onFailure(_error!);
+        return IsSuccess ? await onSuccess(_value!) : await onFailure(FailureError);
     }
 
     /// <summary>
@@ -722,7 +746,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     public readonly async Task<TValue> ElseAsync(Func<TError, Task<TValue>> fallbackFunc)
     {
         ArgumentNullException.ThrowIfNull(fallbackFunc);
-        return IsSuccess ? _value! : await fallbackFunc(_error!);
+        return IsSuccess ? _value! : await fallbackFunc(FailureError);
     }
 
     /// <summary>
