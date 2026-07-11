@@ -126,6 +126,17 @@ public class ErrorModelTests
         }
 
         [Fact]
+        public void ErrorCollection_ParamsCtor_IsIsolatedFromCallerArray()
+        {
+            var source = new IError[] { new Error("A", "a") };
+            var collection = new ErrorCollection(source);
+
+            source[0] = new Error("B", "b");
+
+            Assert.Equal("A", collection[0].Code);
+        }
+
+        [Fact]
         public void Error_ToString_IncludesTypeAndCode()
         {
             var error = new Error("ERR", "msg", ErrorType.Validation);

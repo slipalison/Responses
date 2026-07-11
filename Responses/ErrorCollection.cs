@@ -26,7 +26,9 @@ public readonly struct ErrorCollection : IReadOnlyList<IError>
     /// </summary>
     public ErrorCollection(params IError[] errors)
     {
-        _errors = errors ?? Array.Empty<IError>();
+        // Defensive copy: an immutable collection must not alias an array the caller
+        // still holds and can mutate afterwards.
+        _errors = errors is { Length: > 0 } ? (IError[])errors.Clone() : Array.Empty<IError>();
     }
 
     /// <summary>
