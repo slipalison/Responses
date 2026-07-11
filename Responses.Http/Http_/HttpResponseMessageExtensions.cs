@@ -177,11 +177,12 @@ public static class HttpResponseMessageExtensions
 
     private static async Task<Result> ToResultAsync(HttpResponseMessage response, CancellationToken ct)
     {
-        var rawBody = await ReadBodyOnceAsync(response, ct).ConfigureAwait(false);
-
+        // A void result ignores the payload on success, so never materialize it — a large
+        // 2xx body would otherwise be read into a string only to be discarded (LOH pressure).
         if (IsSuccessStatus(response.StatusCode))
             return Result.Ok();
 
+        var rawBody = await ReadBodyOnceAsync(response, ct).ConfigureAwait(false);
         return Result.Fail(CreateHttpError(response.StatusCode, rawBody));
     }
 
