@@ -311,27 +311,46 @@ public class HttpExtensionsTests
     public class ResultHttpExtensionsTests
     {
         [Fact]
-        public void WithHttpInfo_ReturnsResultAndDefaultHttpInfo()
+        public void WithHttpInfo_AttachesSuppliedMetadata()
         {
-            var result = Result.Ok(42);
-            var (resultValue, httpInfo) = result.WithHttpInfo();
+            var info = new HttpResponseInfo(
+                HttpStatusCode.OK,
+                "OK",
+                new Dictionary<string, IEnumerable<string>>(),
+                "{}");
+            var (resultValue, httpInfo) = Result.Ok(42).WithHttpInfo(info);
 
             Assert.True(resultValue.IsSuccess);
             Assert.Equal(42, resultValue.Value);
-            // Note: HttpResponseInfo is default since HTTP metadata capture
-            // is not yet integrated into Result types. This is a placeholder
-            // for future implementation (see R32 in roadmap).
-            Assert.Equal(default, httpInfo.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, httpInfo.StatusCode);
+            Assert.Equal("OK", httpInfo.ReasonPhrase);
         }
 
         [Fact]
-        public void WithHttpInfo_WorksWithFailedResult()
+        public async Task ReceiveResultWithInfo_CapturesStatusHeadersAndBody()
         {
-            var result = Result.Fail<int>("ERR", "msg");
-            var (resultValue, httpInfo) = result.WithHttpInfo();
+            using var test = new HttpTest();
+            test.RespondWithJson(42, 200, new { X_Trace = "abc" });
 
-            Assert.True(resultValue.IsFailed);
-            Assert.Equal(default, httpInfo.StatusCode);
+            var (result, info) = await "http://test".GetAsync().ReceiveResultWithInfo<int>();
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(42, result.Value);
+            Assert.Equal(HttpStatusCode.OK, info.StatusCode);
+            Assert.Contains("42", info.RawBody);
+        }
+
+        [Fact]
+        public async Task ReceiveResultWithInfo_OnFailure_CapturesErrorAndStatus()
+        {
+            using var test = new HttpTest();
+            test.RespondWith("boom", 500);
+
+            var (result, info) = await "http://test".GetAsync().ReceiveResultWithInfo<int>();
+
+            Assert.True(result.IsFailed);
+            Assert.Equal(HttpStatusCode.InternalServerError, info.StatusCode);
+            Assert.Equal("boom", info.RawBody);
         }
     }
 

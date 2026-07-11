@@ -173,7 +173,89 @@ public static class HttpResponseMessageExtensions
         }
     }
 
+    /// <summary>
+    /// Receives an HTTP response as a <see cref="Result{TValue}"/> paired with the captured
+    /// <see cref="HttpResponseInfo"/> (status code, reason phrase, headers, and raw body).
+    /// On a transport failure the result carries the error and the HTTP info is default.
+    /// </summary>
+    public static async Task<(Result<TValue> Result, HttpResponseInfo HttpInfo)> ReceiveResultWithInfo<TValue>(
+        this Task<HttpResponseMessage> responseTask, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(responseTask);
+        try
+        {
+            using var resp = await responseTask.ConfigureAwait(false);
+            return await ToResultWithInfoAsync<TValue>(resp, ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return (Result.Fail<TValue>(Error.Cancelled(CancelledCode, CancelledMessage)), default);
+        }
+        catch (Exception ex) when (IsNetworkError(ex))
+        {
+            return (Result.Fail<TValue>(Error.Server(NetworkErrorCode, ex.Message)), default);
+        }
+        catch (Exception ex)
+        {
+            return (Result.Fail<TValue>(GenericErrorCode, ex.Message), default);
+        }
+    }
+
+    /// <summary>
+    /// Receives an <see cref="IFlurlResponse"/> as a <see cref="Result{TValue}"/> paired with the
+    /// captured <see cref="HttpResponseInfo"/>.
+    /// </summary>
+    public static async Task<(Result<TValue> Result, HttpResponseInfo HttpInfo)> ReceiveResultWithInfo<TValue>(
+        this Task<IFlurlResponse> response, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+        try
+        {
+            using var resp = await response.ConfigureAwait(false);
+            return await ToResultWithInfoAsync<TValue>(resp.ResponseMessage, ct).ConfigureAwait(false);
+        }
+        catch (FlurlHttpException fex) when (fex.Call?.Response != null)
+        {
+            return await ToResultWithInfoAsync<TValue>(fex.Call.Response.ResponseMessage, ct).ConfigureAwait(false);
+        }
+        catch (FlurlHttpException fex)
+        {
+            return (Result.Fail<TValue>(GenericErrorCode, fex.Message), default);
+        }
+        catch (OperationCanceledException)
+        {
+            return (Result.Fail<TValue>(Error.Cancelled(CancelledCode, CancelledMessage)), default);
+        }
+    }
+
     #region Internal helpers
+
+    private static async Task<(Result<TValue> Result, HttpResponseInfo HttpInfo)> ToResultWithInfoAsync<TValue>(
+        HttpResponseMessage response, CancellationToken ct)
+    {
+        var rawBody = await ReadBodyOnceAsync(response, ct).ConfigureAwait(false);
+        var info = BuildInfo(response, rawBody);
+
+        if (IsSuccessStatus(response.StatusCode))
+        {
+            var value = TryDeserialize<TValue>(rawBody, out var deserialized) ? deserialized : default;
+            return (Result.Ok(value!), info);
+        }
+
+        return (Result.Fail<TValue>(CreateHttpError(response.StatusCode, rawBody)), info);
+    }
+
+    private static HttpResponseInfo BuildInfo(HttpResponseMessage response, string rawBody)
+    {
+        var headers = new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var header in response.Headers)
+            headers[header.Key] = header.Value;
+        if (response.Content is not null)
+            foreach (var header in response.Content.Headers)
+                headers[header.Key] = header.Value;
+
+        return new HttpResponseInfo(response.StatusCode, response.ReasonPhrase ?? string.Empty, headers, rawBody);
+    }
 
     private static async Task<Result> ToResultAsync(HttpResponseMessage response, CancellationToken ct)
     {
@@ -285,14 +367,15 @@ public static class HttpResponseMessageExtensions
 }
 
 /// <summary>
-/// Extensions to access HTTP metadata from a Result.
+/// Extensions to pair a Result with captured HTTP metadata.
 /// </summary>
 public static class ResultHttpExtensions
 {
     /// <summary>
-    /// Returns a tuple of the result and HTTP info. Use with <see cref="HttpResponseMessageExtensions"/>.
-    /// For now returns default HttpResponseInfo — full integration requires storing HttpResponseInfo on Result.
+    /// Pairs a result with the supplied <see cref="HttpResponseInfo"/>. Use together with the
+    /// ReceiveResultWithInfo extensions on <see cref="HttpResponseMessageExtensions"/> to thread
+    /// HTTP metadata alongside a result without storing it on the core Result type.
     /// </summary>
-    public static (Result<TValue> Result, HttpResponseInfo HttpInfo) WithHttpInfo<TValue>(this Result<TValue> result) =>
-        (result, default);
+    public static (Result<TValue> Result, HttpResponseInfo HttpInfo) WithHttpInfo<TValue>(
+        this Result<TValue> result, HttpResponseInfo httpInfo) => (result, httpInfo);
 }
