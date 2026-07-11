@@ -9,9 +9,19 @@ namespace Responses.Serialization;
 /// </summary>
 public readonly struct ResultDto
 {
+    /// <summary>
+    /// Gets a value indicating whether the operation succeeded.
+    /// </summary>
     public bool IsSuccessful { get; }
+
+    /// <summary>
+    /// Gets the serialized errors, empty when successful.
+    /// </summary>
     public ErrorDto[] Errors { get; }
 
+    /// <summary>
+    /// Creates a new <see cref="ResultDto"/>.
+    /// </summary>
     [JsonConstructor]
     public ResultDto(bool isSuccessful, ErrorDto[] errors)
     {
@@ -19,6 +29,9 @@ public readonly struct ResultDto
         Errors = errors ?? Array.Empty<ErrorDto>();
     }
 
+    /// <summary>
+    /// Creates a DTO from a <see cref="Result"/>.
+    /// </summary>
     public static ResultDto FromResult(Result result)
     {
         var errors = new ErrorDto[result.Errors.Count];
@@ -27,6 +40,9 @@ public readonly struct ResultDto
         return new ResultDto(result.IsSuccess, errors);
     }
 
+    /// <summary>
+    /// Converts this DTO back to a <see cref="Result"/>.
+    /// </summary>
     public Result ToResult()
     {
         if (IsSuccessful)
@@ -49,10 +65,24 @@ public readonly struct ResultDto
 /// </summary>
 public readonly struct ResultDto<T>
 {
+    /// <summary>
+    /// Gets a value indicating whether the operation succeeded.
+    /// </summary>
     public bool IsSuccessful { get; }
+
+    /// <summary>
+    /// Gets the result value, default when failed.
+    /// </summary>
     public T? Value { get; }
+
+    /// <summary>
+    /// Gets the serialized errors, empty when successful.
+    /// </summary>
     public ErrorDto[] Errors { get; }
 
+    /// <summary>
+    /// Creates a new <see cref="ResultDto{T}"/>.
+    /// </summary>
     [JsonConstructor]
     public ResultDto(bool isSuccessful, T? value, ErrorDto[] errors)
     {
@@ -61,6 +91,9 @@ public readonly struct ResultDto<T>
         Errors = errors ?? Array.Empty<ErrorDto>();
     }
 
+    /// <summary>
+    /// Creates a DTO from a <see cref="Result{T}"/>.
+    /// </summary>
     public static ResultDto<T> FromResult(Result<T> result)
     {
         var errors = new ErrorDto[result.Errors.Count];
@@ -69,6 +102,9 @@ public readonly struct ResultDto<T>
         return new ResultDto<T>(result.IsSuccess, result.ValueOrDefault, errors);
     }
 
+    /// <summary>
+    /// Converts this DTO back to a <see cref="Result{T}"/>.
+    /// </summary>
     public Result<T> ToResult()
     {
         if (IsSuccessful)
@@ -92,10 +128,24 @@ public readonly struct ResultDto<T>
 public readonly struct ResultDto<TValue, TError>
     where TError : IError
 {
+    /// <summary>
+    /// Gets a value indicating whether the operation succeeded.
+    /// </summary>
     public bool IsSuccessful { get; }
+
+    /// <summary>
+    /// Gets the result value, default when failed.
+    /// </summary>
     public TValue? Value { get; }
+
+    /// <summary>
+    /// Gets the serialized errors, empty when successful.
+    /// </summary>
     public ErrorDto[] Errors { get; }
 
+    /// <summary>
+    /// Creates a new <see cref="ResultDto{TValue,TError}"/>.
+    /// </summary>
     [JsonConstructor]
     public ResultDto(bool isSuccessful, TValue? value, ErrorDto[] errors)
     {
@@ -104,6 +154,9 @@ public readonly struct ResultDto<TValue, TError>
         Errors = errors ?? Array.Empty<ErrorDto>();
     }
 
+    /// <summary>
+    /// Creates a DTO from a <see cref="Result{TValue,TError}"/>.
+    /// </summary>
     public static ResultDto<TValue, TError> FromResult(Result<TValue, TError> result)
     {
         var errors = new ErrorDto[result.Errors.Count];
@@ -112,6 +165,9 @@ public readonly struct ResultDto<TValue, TError>
         return new ResultDto<TValue, TError>(result.IsSuccess, result.ValueOrDefault, errors);
     }
 
+    /// <summary>
+    /// Converts this DTO back to a <see cref="Result{TValue,TError}"/>.
+    /// </summary>
     public Result<TValue, TError> ToResult()
     {
         if (IsSuccessful)
@@ -134,13 +190,39 @@ public readonly struct ResultDto<TValue, TError>
 /// </summary>
 public readonly struct ErrorDto
 {
+    /// <summary>
+    /// Gets the error code (machine-readable identifier).
+    /// </summary>
     public string Code { get; }
+
+    /// <summary>
+    /// Gets the error message (human-readable description).
+    /// </summary>
     public string Message { get; }
+
+    /// <summary>
+    /// Gets the error type for categorization and HTTP status mapping.
+    /// </summary>
     public ErrorType Type { get; }
+
+    /// <summary>
+    /// Gets the layer where the error originated.
+    /// </summary>
     public string Layer { get; }
+
+    /// <summary>
+    /// Gets the application name.
+    /// </summary>
     public string ApplicationName { get; }
+
+    /// <summary>
+    /// Gets additional metadata key-value pairs.
+    /// </summary>
     public Dictionary<string, string> Metadata { get; }
 
+    /// <summary>
+    /// Creates a new <see cref="ErrorDto"/>.
+    /// </summary>
     [JsonConstructor]
     public ErrorDto(string code, string message, ErrorType type, string layer, string applicationName, Dictionary<string, string>? metadata)
     {
@@ -152,9 +234,14 @@ public readonly struct ErrorDto
         Metadata = metadata ?? new Dictionary<string, string>();
     }
 
+    /// <summary>
+    /// Creates a DTO from any <see cref="IError"/>.
+    /// </summary>
     public static ErrorDto FromError(IError error)
     {
-        var metadata = new Dictionary<string, string>();
+        ArgumentNullException.ThrowIfNull(error);
+
+        var metadata = new Dictionary<string, string>(error.Metadata.Count);
         foreach (var kvp in error.Metadata)
             metadata[kvp.Key] = kvp.Value;
 
@@ -167,5 +254,8 @@ public readonly struct ErrorDto
             metadata);
     }
 
+    /// <summary>
+    /// Converts this DTO back to an <see cref="Error"/>.
+    /// </summary>
     public Error ToError() => new(Code, Message, Type, Metadata);
 }
