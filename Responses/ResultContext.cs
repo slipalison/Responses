@@ -1,5 +1,3 @@
-﻿using System.Linq;
-
 namespace Responses;
 
 internal static class ResultContext
@@ -11,7 +9,8 @@ internal static class ResultContext
     private static (string Layer, string ApplicationName) GetConfiguration()
     {
         var assemblyName = AssemblyContext.GetAssemblyName();
-        var layer = assemblyName.Split('.').FirstOrDefault() ?? assemblyName;
+        var separatorIndex = assemblyName.IndexOf('.');
+        var layer = separatorIndex < 0 ? assemblyName : assemblyName[..separatorIndex];
         return (layer, assemblyName);
     }
 }

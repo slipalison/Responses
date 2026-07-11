@@ -17,6 +17,7 @@ internal static class AssemblyContext
         }
         catch
         {
+            // GetEntryAssembly can throw in restricted hosts (native AOT, custom loaders).
             return "Unknown";
         }
     }
