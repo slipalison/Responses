@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
@@ -11,7 +12,7 @@ namespace Responses;
 [StructLayout(LayoutKind.Auto)]
 public readonly struct Error : IError
 {
-    private static readonly IReadOnlyDictionary<string, string> _emptyMetadata = new Dictionary<string, string>();
+    private static readonly IReadOnlyDictionary<string, string> _emptyMetadata = FrozenDictionary<string, string>.Empty;
 
     /// <summary>
     /// Gets the error code (machine-readable identifier).
@@ -176,11 +177,8 @@ public readonly struct Error : IError
 
     private static void ValidateCtor(string code, string message)
     {
-        if (string.IsNullOrEmpty(code))
-            throw new ArgumentNullException(nameof(code));
-
-        if (string.IsNullOrEmpty(message))
-            throw new ArgumentNullException(nameof(message));
+        ArgumentException.ThrowIfNullOrEmpty(code);
+        ArgumentException.ThrowIfNullOrEmpty(message);
     }
 
     /// <inheritdoc />

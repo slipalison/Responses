@@ -84,15 +84,29 @@ public class ErrorModelTests
         }
 
         [Fact]
-        public void Error_EmptyCode_ThrowsArgumentNullException()
+        public void Error_EmptyCode_ThrowsArgumentException()
         {
-            Assert.Throws<ArgumentNullException>(() => new Error("", "msg"));
+            Assert.Throws<ArgumentException>(() => new Error("", "msg"));
         }
 
         [Fact]
         public void Error_NullMessage_ThrowsArgumentNullException()
         {
             Assert.Throws<ArgumentNullException>(() => new Error("code", null!));
+        }
+
+        [Fact]
+        public void Error_EmptyMessage_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => new Error("code", ""));
+        }
+
+        [Fact]
+        public void Error_EmptyMetadata_IsImmutable()
+        {
+            var error = new Error("ERR", "msg");
+            Assert.False(error.Metadata is Dictionary<string, string>);
+            Assert.Empty(error.Metadata);
         }
 
         [Fact]
