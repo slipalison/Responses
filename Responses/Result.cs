@@ -277,7 +277,7 @@ public readonly struct Result
     public readonly async Task<Result> BindAsync(Func<Task<Result>> func)
     {
         ArgumentNullException.ThrowIfNull(func);
-        return IsSuccess ? await func() : this;
+        return IsSuccess ? await func().ConfigureAwait(false) : this;
     }
 
     /// <summary>
@@ -286,7 +286,7 @@ public readonly struct Result
     public readonly async Task<Result> TapAsync(Func<Task> action)
     {
         ArgumentNullException.ThrowIfNull(action);
-        if (IsSuccess) await action();
+        if (IsSuccess) await action().ConfigureAwait(false);
         return this;
     }
 }
@@ -456,7 +456,7 @@ public readonly struct Result<T>
     public readonly async Task<Result<TOut>> MapAsync<TOut>(Func<T, Task<TOut>> func)
     {
         ArgumentNullException.ThrowIfNull(func);
-        return IsSuccess ? Result.Ok(await func(_value!)) : new Result<TOut>(false, _errors, default);
+        return IsSuccess ? Result.Ok(await func(_value!).ConfigureAwait(false)) : new Result<TOut>(false, _errors, default);
     }
 
     /// <summary>
@@ -465,7 +465,7 @@ public readonly struct Result<T>
     public readonly async Task<Result<TOut>> BindAsync<TOut>(Func<T, Task<Result<TOut>>> func)
     {
         ArgumentNullException.ThrowIfNull(func);
-        return IsSuccess ? await func(_value!) : new Result<TOut>(false, _errors, default);
+        return IsSuccess ? await func(_value!).ConfigureAwait(false) : new Result<TOut>(false, _errors, default);
     }
 
     /// <summary>
@@ -474,7 +474,7 @@ public readonly struct Result<T>
     public readonly async Task<Result<T>> TapAsync(Func<T, Task> action)
     {
         ArgumentNullException.ThrowIfNull(action);
-        if (IsSuccess) await action(_value!);
+        if (IsSuccess) await action(_value!).ConfigureAwait(false);
         return this;
     }
 
@@ -496,7 +496,7 @@ public readonly struct Result<T>
     {
         ArgumentNullException.ThrowIfNull(onSuccess);
         ArgumentNullException.ThrowIfNull(onFailure);
-        return IsSuccess ? await onSuccess(_value!) : await onFailure(FailureError);
+        return IsSuccess ? await onSuccess(_value!).ConfigureAwait(false) : await onFailure(FailureError).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -505,7 +505,7 @@ public readonly struct Result<T>
     public readonly async Task<T> ElseAsync(Func<Error, Task<T>> fallbackFunc)
     {
         ArgumentNullException.ThrowIfNull(fallbackFunc);
-        return IsSuccess ? _value! : await fallbackFunc(FailureError);
+        return IsSuccess ? _value! : await fallbackFunc(FailureError).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -697,7 +697,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     public readonly async Task<Result<TOut, TError>> MapAsync<TOut>(Func<TValue, Task<TOut>> func)
     {
         ArgumentNullException.ThrowIfNull(func);
-        return IsSuccess ? Result.Ok<TOut, TError>(await func(_value!)) : new Result<TOut, TError>(false, _errors, default);
+        return IsSuccess ? Result.Ok<TOut, TError>(await func(_value!).ConfigureAwait(false)) : new Result<TOut, TError>(false, _errors, default);
     }
 
     /// <summary>
@@ -706,7 +706,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     public readonly async Task<Result<TOut, TError>> BindAsync<TOut>(Func<TValue, Task<Result<TOut, TError>>> func)
     {
         ArgumentNullException.ThrowIfNull(func);
-        return IsSuccess ? await func(_value!) : new Result<TOut, TError>(false, _errors, default);
+        return IsSuccess ? await func(_value!).ConfigureAwait(false) : new Result<TOut, TError>(false, _errors, default);
     }
 
     /// <summary>
@@ -715,7 +715,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     public readonly async Task<Result<TValue, TError>> TapAsync(Func<TValue, Task> action)
     {
         ArgumentNullException.ThrowIfNull(action);
-        if (IsSuccess) await action(_value!);
+        if (IsSuccess) await action(_value!).ConfigureAwait(false);
         return this;
     }
 
@@ -737,7 +737,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     {
         ArgumentNullException.ThrowIfNull(onSuccess);
         ArgumentNullException.ThrowIfNull(onFailure);
-        return IsSuccess ? await onSuccess(_value!) : await onFailure(FailureError);
+        return IsSuccess ? await onSuccess(_value!).ConfigureAwait(false) : await onFailure(FailureError).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -746,7 +746,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     public readonly async Task<TValue> ElseAsync(Func<TError, Task<TValue>> fallbackFunc)
     {
         ArgumentNullException.ThrowIfNull(fallbackFunc);
-        return IsSuccess ? _value! : await fallbackFunc(FailureError);
+        return IsSuccess ? _value! : await fallbackFunc(FailureError).ConfigureAwait(false);
     }
 
     /// <summary>
