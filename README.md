@@ -361,11 +361,16 @@ var dtoBack = JsonSerializer.Deserialize<ResultDto<int>>(json);
 var resultBack = dtoBack.ToResult();
 ```
 
-For direct serialization of common shapes, `ResultJsonContext.DefaultOptions` exposes read-only options backed by the source-generated context (zero reflection):
+`ResultJsonContext.DefaultOptions` exposes read-only, source-generated (zero-reflection) options for the DTOs. Serialize and deserialize through the DTO — it has a stable shape and round-trips:
 
 ```csharp
-string json = JsonSerializer.Serialize(Result.Ok(42), ResultJsonContext.DefaultOptions);
+var dto = ResultDto<int>.FromResult(Result.Ok(42));
+string json = JsonSerializer.Serialize(dto, ResultJsonContext.DefaultOptions);
+
+var back = JsonSerializer.Deserialize<ResultDto<int>>(json, ResultJsonContext.DefaultOptions).ToResult();
 ```
+
+Result structs are intentionally **not** registered for direct serialization: a Result cannot be reconstructed from its own serialized form (the constructors are internal), so serializing one directly through `DefaultOptions` throws `NotSupportedException` rather than emitting JSON that will not round-trip. Always go through the DTO.
 
 **JSON format:**
 

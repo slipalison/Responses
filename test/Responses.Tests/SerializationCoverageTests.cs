@@ -37,10 +37,19 @@ public class SerializationCoverageTests
         }
 
         [Fact]
-        public void DefaultOptions_SerializesResult()
+        public void DefaultOptions_SerializesResultDto()
         {
-            var json = JsonSerializer.Serialize(Result.Ok(), ResultJsonContext.DefaultOptions);
+            var json = JsonSerializer.Serialize(ResultDto.FromResult(Result.Ok()), ResultJsonContext.DefaultOptions);
             Assert.Contains("isSuccessful", json);
+        }
+
+        [Fact]
+        public void DefaultOptions_RefusesToSerializeResultDirectly()
+        {
+            // Result structs are intentionally not registered: direct serialization cannot
+            // round-trip, so the context steers callers to the DTO projection instead.
+            Assert.Throws<NotSupportedException>(
+                () => JsonSerializer.Serialize(Result.Ok(42), ResultJsonContext.DefaultOptions));
         }
     }
 
@@ -290,30 +299,21 @@ public class SerializationCoverageTests
         }
 
         [Fact]
-        public void DefaultOptions_CanBeUsedForSerialization()
+        public void DefaultOptions_SerializesResultDtoViaContext()
         {
-            var result = Result.Ok(42);
-            var json = JsonSerializer.Serialize(result, ResultJsonContext.DefaultOptions);
-            Assert.NotNull(json);
-            Assert.Contains("isSuccessful", json);
-        }
-
-        [Fact]
-        public void SerializeWithSourceGenerator_Result()
-        {
-            var result = Result.Ok();
-            var json = JsonSerializer.Serialize(result, ResultJsonContext.Default.Result);
-            Assert.Contains("isSuccessful", json);
-            Assert.Contains("true", json);
-        }
-
-        [Fact]
-        public void SerializeWithSourceGenerator_ResultOfT()
-        {
-            var result = Result.Ok(42);
-            var json = JsonSerializer.Serialize(result, ResultJsonContext.Default.ResultInt32);
+            var dto = ResultDto<int>.FromResult(Result.Ok(42));
+            var json = JsonSerializer.Serialize(dto, ResultJsonContext.DefaultOptions);
             Assert.Contains("isSuccessful", json);
             Assert.Contains("42", json);
+        }
+
+        [Fact]
+        public void DefaultOptions_RoundTripsResultDto()
+        {
+            var json = JsonSerializer.Serialize(ResultDto<int>.FromResult(Result.Ok(42)), ResultJsonContext.DefaultOptions);
+            var back = JsonSerializer.Deserialize<ResultDto<int>>(json, ResultJsonContext.DefaultOptions).ToResult();
+            Assert.True(back.IsSuccess);
+            Assert.Equal(42, back.ValueOrDefault);
         }
 
         [Fact]
@@ -329,44 +329,40 @@ public class SerializationCoverageTests
 
     #endregion
 
-    #region Integration: Serialize-only with Source Generator
+    #region Integration: DTO round-trip through the source generator
 
     public class SourceGeneratorIntegrationTests
     {
         [Fact]
-        public void SerializeResult_ProducesValidJson()
+        public void RoundTripResult_ViaDto_PreservesSuccess()
         {
-            var original = Result.Ok();
-            var json = JsonSerializer.Serialize(original, ResultJsonContext.Default.Result);
-            Assert.NotNull(json);
+            var json = JsonSerializer.Serialize(ResultDto.FromResult(Result.Ok()), ResultJsonContext.DefaultOptions);
+            var back = JsonSerializer.Deserialize<ResultDto>(json, ResultJsonContext.DefaultOptions).ToResult();
+            Assert.True(back.IsSuccess);
         }
 
         [Fact]
-        public void SerializeResultOfT_ProducesValidJson()
+        public void RoundTripResultOfT_ViaDto_PreservesValue()
         {
-            var original = Result.Ok(42);
-            var json = JsonSerializer.Serialize(original, ResultJsonContext.Default.ResultInt32);
-            Assert.NotNull(json);
-            Assert.Contains("isSuccessful", json);
-        }
-
-        [Fact]
-        public void SerializeResultOfString_ProducesValidJson()
-        {
-            var original = Result.Ok("hello");
-            var json = JsonSerializer.Serialize(original, ResultJsonContext.Default.ResultString);
-            Assert.NotNull(json);
+            var json = JsonSerializer.Serialize(ResultDto<string>.FromResult(Result.Ok("hello")), ResultJsonContext.DefaultOptions);
             Assert.Contains("hello", json);
+
+            var back = JsonSerializer.Deserialize<ResultDto<string>>(json, ResultJsonContext.DefaultOptions).ToResult();
+            Assert.True(back.IsSuccess);
+            Assert.Equal("hello", back.ValueOrDefault);
         }
 
         [Fact]
-        public void SerializeFailResult_ProducesErrorJson()
+        public void RoundTripFailResult_ViaDto_PreservesErrors()
         {
             var original = Result.Fail<int>("ERR001", "Something failed");
-            var json = JsonSerializer.Serialize(original, ResultJsonContext.Default.ResultInt32);
+            var json = JsonSerializer.Serialize(ResultDto<int>.FromResult(original), ResultJsonContext.DefaultOptions);
             Assert.Contains("isSuccessful", json);
-            Assert.Contains("false", json);
             Assert.Contains("errors", json);
+
+            var back = JsonSerializer.Deserialize<ResultDto<int>>(json, ResultJsonContext.DefaultOptions).ToResult();
+            Assert.True(back.IsFailed);
+            Assert.Equal("ERR001", back.Error.Code);
         }
     }
 
