@@ -113,7 +113,8 @@ public class ErrorModelTests
         public void ErrorCollection_Default_IsEmptyAndSafeToEnumerate()
         {
             ErrorCollection collection = default;
-            Assert.Equal(0, collection.Count);
+            var count = collection.Count;
+            Assert.Equal(0, count);
             Assert.Empty(collection);
         }
 
