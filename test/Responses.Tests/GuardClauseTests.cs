@@ -153,9 +153,11 @@ public class GuardClauseTests
     }
 
     [Fact]
+#pragma warning disable CS0618 // deliberately exercises the deprecated void Else
     public void Result_Else_OnVoidResult_ThrowsWithStableMessage()
     {
         var exception = Assert.Throws<InvalidOperationException>(() => OkVoid.Else(0));
         Assert.Contains("Result<void>", exception.Message);
     }
+#pragma warning restore CS0618
 }
