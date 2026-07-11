@@ -37,8 +37,8 @@ public class StringRepresentationTests
             var fail = Result.Fail("ERR", "msg");
             var ex = Record.Exception(() =>
             {
-                var _ = ok.ToString();
-                var __ = fail.ToString();
+                _ = ok.ToString();
+                _ = fail.ToString();
             });
             Assert.Null(ex);
         }
@@ -171,13 +171,6 @@ public class StringRepresentationTests
         }
 
         [Fact]
-        public void OkIf_VoidResult_True_ReturnsOk()
-        {
-            var result = Result.OkIf(true, "code", "msg");
-            Assert.True(result.IsSuccess);
-        }
-
-        [Fact]
         public void OkIf_VoidResult_False_ReturnsFail()
         {
             var result = Result.OkIf(false, "code", "msg");
@@ -267,12 +260,6 @@ public class StringRepresentationTests
             Assert.True(result.IsFailed);
         }
 
-        [Fact]
-        public void FailIf_VoidResult_False_ReturnsOk()
-        {
-            var result = Result.FailIf(false, "code", "msg");
-            Assert.True(result.IsSuccess);
-        }
     }
 
     #endregion

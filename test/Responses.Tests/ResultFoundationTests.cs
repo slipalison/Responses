@@ -488,6 +488,7 @@ public class ResultFoundationTests
             var executed = false;
             var result = Result.Ok<int, TestError>(42).Tap(x => executed = x == 42);
             Assert.True(executed);
+            Assert.True(result.IsSuccess);
         }
 
         [Fact]
@@ -497,6 +498,7 @@ public class ResultFoundationTests
             var error = new TestError { Code = "ERR", Message = "msg" };
             var result = Result.Fail<int, TestError>(error).Tap(x => executed = true);
             Assert.False(executed);
+            Assert.True(result.IsFailed);
         }
 
         [Fact]

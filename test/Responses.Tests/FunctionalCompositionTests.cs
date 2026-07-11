@@ -245,6 +245,7 @@ public class FunctionalCompositionTests
             var result = Result.Ok<int, TestError>(42);
             var tapped = result.Tap(x => sideEffect = x);
             Assert.Equal(42, sideEffect);
+            Assert.True(tapped.IsSuccess);
         }
 
         [Fact]
@@ -255,6 +256,7 @@ public class FunctionalCompositionTests
             var result = Result.Fail<int, TestError>(error);
             var tapped = result.Tap(x => executed = true);
             Assert.False(executed);
+            Assert.True(tapped.IsFailed);
         }
 
         [Fact]
@@ -272,6 +274,7 @@ public class FunctionalCompositionTests
             var executed = false;
             var result = Result.Fail("ERR", "msg").Tap(() => executed = true);
             Assert.False(executed);
+            Assert.True(result.IsFailed);
         }
     }
 
@@ -310,7 +313,6 @@ public class FunctionalCompositionTests
         [Fact]
         public void Ensure_WithTypedError_ReturnsSuccess_WhenPredicateIsTrue()
         {
-            var error = new TestError { Code = "ERR", Message = "err" };
             var result = Result.Ok<int, TestError>(5)
                 .Ensure(x => x > 0, new TestError { Code = "NEG", Message = "negative" });
             Assert.True(result.IsSuccess);

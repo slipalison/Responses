@@ -71,6 +71,18 @@ public readonly struct Result
     public static Result Ok() => new(isSuccess: true, error: default);
 
     /// <summary>
+    /// Creates a successful result with the specified value.
+    /// </summary>
+    [DebuggerStepThrough]
+    public static Result<T> Ok<T>(T value) => new(isSuccess: true, error: default, value: value);
+
+    /// <summary>
+    /// Creates a successful result with typed error.
+    /// </summary>
+    [DebuggerStepThrough]
+    public static Result<TValue, TError> Ok<TValue, TError>(TValue value) where TError : IError => new(isSuccess: true, error: default!, value: value);
+
+    /// <summary>
     /// Creates a failed result with the specified error code and message.
     /// </summary>
     [DebuggerStepThrough]
@@ -107,12 +119,6 @@ public readonly struct Result
     public static Result Fail(params IError[] errors) => new(isSuccess: false, errors: new ErrorCollection(errors));
 
     /// <summary>
-    /// Creates a successful result with the specified value.
-    /// </summary>
-    [DebuggerStepThrough]
-    public static Result<T> Ok<T>(T value) => new(isSuccess: true, error: default, value: value);
-
-    /// <summary>
     /// Creates a failed result with the specified error code and message.
     /// </summary>
     [DebuggerStepThrough]
@@ -147,12 +153,6 @@ public readonly struct Result
     /// </summary>
     [DebuggerStepThrough]
     public static Result<T> Fail<T>(params IError[] errors) => new(isSuccess: false, errors: new ErrorCollection(errors), value: default!);
-
-    /// <summary>
-    /// Creates a successful result with typed error.
-    /// </summary>
-    [DebuggerStepThrough]
-    public static Result<TValue, TError> Ok<TValue, TError>(TValue value) where TError : IError => new(isSuccess: true, error: default!, value: value);
 
     /// <summary>
     /// Creates a failed result with typed error.
@@ -496,11 +496,6 @@ public readonly struct Result<T>
     public readonly Result<TOut> SelectMany<TOut>(Func<T, Result<TOut>> selector) => Bind(selector);
 
     /// <summary>
-    /// Enables LINQ select clause.
-    /// </summary>
-    public readonly Result<TOut> Select<TOut>(Func<T, TOut> selector) => Map(selector);
-
-    /// <summary>
     /// Enables LINQ query syntax with final projection.
     /// </summary>
     public readonly Result<TResult> SelectMany<TIntermediate, TResult>(Func<T, Result<TIntermediate>> collectionSelector, Func<T, TIntermediate, TResult> resultSelector)
@@ -514,6 +509,11 @@ public readonly struct Result<T>
 
         return new Result<TResult>(isSuccess: true, error: default, value: resultSelector(_value!, intermediate.Value));
     }
+
+    /// <summary>
+    /// Enables LINQ select clause.
+    /// </summary>
+    public readonly Result<TOut> Select<TOut>(Func<T, TOut> selector) => Map(selector);
 }
 
 /// <summary>
@@ -574,7 +574,9 @@ public readonly struct Result<TValue, TError> where TError : IError
         IsSuccess = isSuccess;
         _error = error;
         _value = value;
-        _errors = error != null ? new ErrorCollection(error) : ErrorCollection.Empty;
+        _errors = EqualityComparer<TError?>.Default.Equals(error, default)
+            ? ErrorCollection.Empty
+            : new ErrorCollection((IError)error!);
     }
 
     internal Result(bool isSuccess, ErrorCollection errors, TValue? value)
@@ -729,11 +731,6 @@ public readonly struct Result<TValue, TError> where TError : IError
     public readonly Result<TOut, TError> SelectMany<TOut>(Func<TValue, Result<TOut, TError>> selector) => Bind(selector);
 
     /// <summary>
-    /// Enables LINQ select clause.
-    /// </summary>
-    public readonly Result<TOut, TError> Select<TOut>(Func<TValue, TOut> selector) => Map(selector);
-
-    /// <summary>
     /// Enables LINQ query syntax with final projection.
     /// </summary>
     public readonly Result<TResult, TError> SelectMany<TIntermediate, TResult>(Func<TValue, Result<TIntermediate, TError>> collectionSelector, Func<TValue, TIntermediate, TResult> resultSelector)
@@ -747,5 +744,10 @@ public readonly struct Result<TValue, TError> where TError : IError
 
         return Result.Ok<TResult, TError>(resultSelector(_value!, intermediate.Value));
     }
+
+    /// <summary>
+    /// Enables LINQ select clause.
+    /// </summary>
+    public readonly Result<TOut, TError> Select<TOut>(Func<TValue, TOut> selector) => Map(selector);
 }
 

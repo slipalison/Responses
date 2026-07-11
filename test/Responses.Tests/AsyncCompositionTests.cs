@@ -246,6 +246,7 @@ public class AsyncCompositionTests
                 sideEffect = x;
             });
             Assert.Equal(42, sideEffect);
+            Assert.True(tapped.IsSuccess);
         }
 
         [Fact]
@@ -260,6 +261,7 @@ public class AsyncCompositionTests
                 executed = true;
             });
             Assert.False(executed);
+            Assert.True(tapped.IsFailed);
         }
 
         [Fact]
