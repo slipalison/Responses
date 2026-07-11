@@ -5,7 +5,9 @@
 ![.NET](https://img.shields.io/badge/.NET-10.0-blue)
 ![Version](https://img.shields.io/badge/version-2.0.0-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
+[![CI](https://github.com/slipalison/Responses/actions/workflows/dotnetcore.yml/badge.svg)](https://github.com/slipalison/Responses/actions/workflows/dotnetcore.yml)
 [![codecov](https://codecov.io/gh/slipalison/Responses/branch/master/graph/badge.svg)](https://codecov.io/gh/slipalison/Responses)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=slipalison_Responses&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=slipalison_Responses)
 ---
 
 ## Table of Contents
@@ -40,6 +42,7 @@
 - [Async Support](#async-support)
 - [Null Safety](#null-safety)
 - [Benchmarking](#benchmarking)
+- [Development](#development)
 
 ---
 
@@ -135,7 +138,7 @@ int safeValue = result.ValueOrDefault;
 Error error = result.Error;
 
 // Errors — collection (safe, never throws)
-IError[] allErrors = result.Errors;
+ErrorCollection allErrors = result.Errors;
 ```
 
 ---
@@ -243,19 +246,40 @@ var fail = from x in Result.Fail<int>("ERR", "msg")
 
 ### ErrorType
 
+Values match their corresponding HTTP status codes where applicable (RFC 9110, RFC 6585, RFC 4918, RFC 7725):
+
 ```csharp
 public enum ErrorType
 {
     Unknown = 0,
-    Validation = 1,
-    NotFound = 2,
-    Conflict = 3,
-    Unauthorized = 4,
-    Forbidden = 5,
-    ServerError = 6,
-    Timeout = 7,
-    Cancelled = 8,
-    InternalError = 9,
+
+    // 4xx client errors
+    Validation = 400,
+    Unauthorized = 401,
+    PaymentRequired = 402,
+    Forbidden = 403,
+    NotFound = 404,
+    Timeout = 408,
+    Conflict = 409,
+    Gone = 410,
+    UnprocessableEntity = 422,
+    Locked = 423,
+    FailedDependency = 424,
+    UpgradeRequired = 426,
+    PreconditionRequired = 428,
+    TooManyRequests = 429,
+    UnavailableForLegal = 451,
+    ClientClosed = 499,
+
+    // 5xx server errors
+    ServerError = 500,
+    BadGateway = 502,
+    ServiceUnavailable = 503,
+    GatewayTimeout = 504,
+
+    // Non-HTTP
+    InternalError = 998,
+    Cancelled = 999,
 }
 ```
 
@@ -283,7 +307,14 @@ Error.Forbidden("FB", "Access denied")
 Error.Server("SVR", "Internal server error")
 Error.Timeout("TO", "Request timed out")
 Error.Cancelled("CAN", "Operation cancelled")
+Error.TooManyRequests("RATE", "Rate limit exceeded")
+Error.UnprocessableEntity("UNP", "Semantically invalid")
+Error.BadGateway("BGW", "Invalid upstream response")
+Error.ServiceUnavailable("SU", "Temporarily unavailable")
+Error.GatewayTimeout("GTO", "Upstream did not respond")
 ```
+
+Code and message are required: `null` throws `ArgumentNullException`, empty throws `ArgumentException`.
 
 ---
 
@@ -328,6 +359,12 @@ string json = JsonSerializer.Serialize(dto);
 // Deserialize
 var dtoBack = JsonSerializer.Deserialize<ResultDto<int>>(json);
 var resultBack = dtoBack.ToResult();
+```
+
+For direct serialization of common shapes, `ResultJsonContext.DefaultOptions` exposes read-only options backed by the source-generated context (zero reflection):
+
+```csharp
+string json = JsonSerializer.Serialize(Result.Ok(42), ResultJsonContext.DefaultOptions);
 ```
 
 **JSON format:**
@@ -383,14 +420,25 @@ var created = await "https://api.example.com/users"
 
 ### HTTP Status Code Mapping
 
+`StatusCodeMapping.ToErrorType` maps every error status directly to its `ErrorType` (values match the status codes): 400, 401, 403, 404, 408, 409, 410, 422, 423, 424, 426, 428, 429, 451, 499, 500, 502, 503, 504.
+
 | Status Code | ErrorType |
 |-------------|-----------|
-| 400 | Validation |
-| 401 | Unauthorized |
-| 403 | Forbidden |
-| 404 | NotFound |
-| 409 | Conflict |
-| 5xx | ServerError |
+| Mapped codes above | Matching `ErrorType` (e.g. 404 → `NotFound`) |
+| Other 4xx | `Validation` |
+| Other 5xx | `ServerError` |
+| 1xx/2xx/3xx | `Unknown` (not errors) |
+
+### Error contents on failure
+
+For non-2xx responses the resulting `Error` carries:
+
+- **Code**: the problem-details `title` when present, otherwise the numeric status code (`"404"`)
+- **Message**: the problem-details `detail` when present, otherwise the raw body; an empty body falls back to `"HTTP 404 NotFound"`
+- **Type**: mapped from the status code (table above)
+- **Metadata**: `problemType`, `detail`, and `instance` when problem details are present
+
+Cancellation surfaces as `Error.Cancelled("HttpCancelled", ...)` — including for the `IFlurlResponse` overloads — and network faults as `Error.Server("HttpNetworkError", ...)`. No expected HTTP outcome throws.
 
 ### RFC 9457 ProblemDetails
 
@@ -413,8 +461,10 @@ var result = await "https://api.example.com/users/999"
     .GetAsync()
     .ReceiveResult<User>();
 
+// Error.Code    = "User Not Found"
 // Error.Message = "The requested user does not exist"
-// Error.Type = ErrorType.NotFound
+// Error.Type    = ErrorType.NotFound
+// Error.Metadata["problemType"] = "https://example.com/errors/not-found"
 ```
 
 ### Graceful Error Handling
@@ -447,15 +497,18 @@ var result = await Result.Ok("user@example.com")
 
 ## Null Safety
 
-All methods throw `ArgumentNullException` for null arguments:
+Every composition method — including the async variants and LINQ operators, on all three result types — validates its delegate arguments:
 
 ```csharp
-result.Map(null!);       // ArgumentNullException
-result.Bind(null!);      // ArgumentNullException
-result.Tap(null!);       // ArgumentNullException
-result.Ensure(null!, e); // ArgumentNullException
-result.Match(null!, f);  // ArgumentNullException
+result.Map(null!);             // ArgumentNullException
+result.Bind(null!);            // ArgumentNullException
+result.Tap(null!);             // ArgumentNullException
+result.Ensure(null!, e);       // ArgumentNullException
+result.Match(null!, f);        // ArgumentNullException
+await result.MapAsync<int>(null!);  // ArgumentNullException (from the returned Task)
 ```
+
+`Error` construction requires non-empty code and message: `null` throws `ArgumentNullException`, empty throws `ArgumentException`.
 
 ---
 
@@ -472,6 +525,26 @@ Benchmarks cover:
 - `Map` / `Bind` — success and failure paths
 - `ValueOrDefault` — success and failure paths
 - Error creation — with and without metadata
+
+---
+
+## Development
+
+```bash
+dotnet tool restore                                   # restores dotnet-sonarscanner
+dotnet build Responses.sln -c Release                 # warnings are errors; SonarAnalyzer.CSharp runs at build time
+dotnet test test/Responses.Tests/Responses.Tests.csproj -c Release
+```
+
+Standards enforced by the build and CI:
+
+- **Zero warnings** — `TreatWarningsAsErrors` with SonarAnalyzer.CSharp in every project
+- **Coverage floor** — 80% line coverage repo-wide (source-generated code excluded), enforced by coverlet in CI
+- **SonarQube** — CI runs a SonarCloud analysis when `SONAR_TOKEN` is configured; fork PRs build and test normally without it
+- **XML docs** — every public member documents itself (`GenerateDocumentationFile`)
+- **Zero allocations on success paths** — see `AllocationTests` and the benchmark suite
+
+Development rules live in [`.claude/rules/`](.claude/rules/) (`csharp.md` for the hot-path C# standard, `public-api.md` for the definition of done). Commits follow Conventional Commits.
 
 ---
 
