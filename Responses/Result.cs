@@ -57,7 +57,7 @@ public readonly struct Result
     internal Result(bool isSuccess, ErrorCollection errors)
     {
         IsSuccess = isSuccess;
-        _error = errors.Count > 0 ? (Error)errors[0] : default;
+        _error = errors.Count > 0 ? Error.FromError(errors[0]) : default;
         _errors = errors;
     }
 
@@ -347,7 +347,7 @@ public readonly struct Result<T>
     internal Result(bool isSuccess, ErrorCollection errors, T? value)
     {
         IsSuccess = isSuccess;
-        _error = errors.Count > 0 ? (Error)errors[0] : default;
+        _error = errors.Count > 0 ? Error.FromError(errors[0]) : default;
         _errors = errors;
         _value = value;
     }
@@ -582,7 +582,7 @@ public readonly struct Result<TValue, TError> where TError : IError
     internal Result(bool isSuccess, ErrorCollection errors, TValue? value)
     {
         IsSuccess = isSuccess;
-        _error = errors.Count > 0 ? (TError)errors[0] : default;
+        _error = errors.Count > 0 && errors[0] is TError typed ? typed : default;
         _errors = errors;
         _value = value;
     }

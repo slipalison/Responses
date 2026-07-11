@@ -91,6 +91,33 @@ public readonly struct Error : IError
         Metadata = _emptyMetadata;
     }
 
+    // Copies an existing IError verbatim, preserving its Layer/ApplicationName instead of
+    // recomputing them from the current context; used only by FromError.
+    private Error(string code, string message, ErrorType type, string layer, string applicationName, IReadOnlyDictionary<string, string> metadata)
+    {
+        Code = code;
+        Message = message;
+        Type = type;
+        Layer = layer;
+        ApplicationName = applicationName;
+        Metadata = metadata;
+    }
+
+    /// <summary>
+    /// Sentinel error surfaced by a defaulted failed result that carries no explicit error.
+    /// </summary>
+    internal static readonly Error Unknown = new("Unknown", "No error information was provided.", ErrorType.Unknown);
+
+    /// <summary>
+    /// Returns <paramref name="error"/> unchanged when it is already an <see cref="Error"/>,
+    /// otherwise a field-for-field copy. Lets any <see cref="IError"/> flow into result types
+    /// whose error surface is the concrete <see cref="Error"/> struct without an invalid cast.
+    /// </summary>
+    internal static Error FromError(IError error) =>
+        error is Error concrete
+            ? concrete
+            : new Error(error.Code, error.Message, error.Type, error.Layer, error.ApplicationName, error.Metadata ?? _emptyMetadata);
+
     /// <summary>
     /// Creates a validation error.
     /// </summary>
