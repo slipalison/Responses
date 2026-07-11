@@ -70,7 +70,7 @@ jobs:
           /k:"slipalison_Responses"
           /o:"slipalison"
           /d:sonar.host.url="https://sonarcloud.io"
-          /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          /d:sonar.token="$env:SONAR_TOKEN"
           /d:sonar.cs.opencover.reportsPaths="test/Responses.Tests/coverage/coverage.opencover.xml"
 
       - name: Build
@@ -95,10 +95,10 @@ jobs:
       - name: SonarQube end
         if: env.SONAR_TOKEN != ''
         shell: powershell
-        run: .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+        run: .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@5975040f7f7d40edaff8d784b576fd65ae95c073 # v5.5.5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: test/Responses.Tests/coverage/coverage.info
@@ -125,8 +125,10 @@ jobs:
       # --skip-duplicate makes re-publishing an existing version a no-op,
       # replacing the old "publish on version change" behavior.
       - name: Push to NuGet
+        env:
+          NUGET_TOKEN: ${{ secrets.NUGET_TOKEN }}
         run: >
           dotnet nuget push "./artifacts/*.nupkg"
-          --api-key "${{ secrets.NUGET_TOKEN }}"
+          --api-key "$NUGET_TOKEN"
           --source https://api.nuget.org/v3/index.json
           --skip-duplicate

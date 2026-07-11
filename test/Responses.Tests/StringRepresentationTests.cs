@@ -301,8 +301,8 @@ public class StringRepresentationTests
             var email = "not-an-email";
             var result = Result.Ok(email)
                 .Ensure(e => !string.IsNullOrEmpty(e), new Error("EMPTY", "Required"))
-                .Ensure(e => e.Contains("@"), new Error("FORMAT", "Invalid format"))
-                .Ensure(e => e.Contains("."), new Error("DOMAIN", "Missing domain"));
+                .Ensure(e => e.Contains('@'), new Error("FORMAT", "Invalid format"))
+                .Ensure(e => e.Contains('.'), new Error("DOMAIN", "Missing domain"));
 
             Assert.True(result.IsFailed);
             Assert.Equal("FORMAT", result.Error.Code);

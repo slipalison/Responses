@@ -198,7 +198,7 @@ public class LinqSupportTests
             var query = from input in Result.Ok("  test@example.com  ")
                         let trimmed = input.Trim()
                         from validated in Result.Ok(trimmed).Ensure(
-                            s => s.Contains("@"),
+                            s => s.Contains('@'),
                             new Error("INVALID", "not an email"))
                         select validated.ToUpper();
 
@@ -212,7 +212,7 @@ public class LinqSupportTests
             var query = from input in Result.Ok("invalid")
                         let trimmed = input.Trim()
                         from validated in Result.Ok(trimmed).Ensure(
-                            s => s.Contains("@"),
+                            s => s.Contains('@'),
                             new Error("INVALID", "not an email"))
                         select validated.ToUpper();
 

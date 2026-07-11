@@ -8,7 +8,6 @@ namespace Responses.Benchmarks;
 /// </summary>
 public class ResultAllocationBenchmarks
 {
-    private static readonly Error _error = Error.Validation("ERR", "message");
     private static readonly Func<int, int> _mapFunc = x => x * 2;
     private static readonly Func<int, Result<int>> _bindFunc = x => Result.Ok(x * 2);
 

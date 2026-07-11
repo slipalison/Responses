@@ -270,12 +270,14 @@ public class HttpExtensionsTests
 
     public class HttpResponseInfoTests
     {
+        private static readonly string[] JsonContentType = ["application/json"];
+
         [Fact]
         public void HttpResponseInfo_CreatesWithAllProperties()
         {
             var headers = new Dictionary<string, IEnumerable<string>>
             {
-                { "Content-Type", new[] { "application/json" } }
+                { "Content-Type", JsonContentType }
             };
             var info = new HttpResponseInfo(
                 System.Net.HttpStatusCode.OK,
